@@ -300,7 +300,7 @@ input::placeholder{color:#8b929b}
   .btn.primary{height:56px;font-size:14px}
   .login-exit{left:12px;top:12px;padding:9px 12px;font-size:12px}
 }
-</style><style id="weight-layout">.weight-panel{display:grid;gap:14px}.weight-section{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fff}.weight-section-title{font-size:10px;font-weight:950;color:#4d5962;letter-spacing:.5px;margin-bottom:10px}.weight-total-box{background:#fff8f3;border:1px solid #ffd8c1;border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;justify-content:center}.weight-total-box span{font-size:9px;color:#b45a2c;font-weight:800}.weight-total-box b{font-size:15px;color:var(--orange);margin-top:3px}.weight-grand-total{display:flex;justify-content:space-between;align-items:center;background:var(--ink);color:#fff;border-radius:12px;padding:14px 16px}.weight-grand-total span{font-size:11px;font-weight:900}.weight-grand-total b{font-size:19px;color:#fff;font-weight:950}.weight-grand-total-thin{padding:8px 16px}.weight-grand-total-thin span{font-size:10px}.weight-grand-total-thin b{font-size:15px}.weight-note{font-size:9px;color:var(--muted)}.weight-actions{display:flex;justify-content:flex-end}
+</style><style id="weight-layout">.weight-panel{display:grid;gap:14px}.weight-section{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fff}.weight-section-title{font-size:10px;font-weight:950;color:#4d5962;letter-spacing:.5px;margin-bottom:10px}.weight-total-box{background:#fff8f3;border:1px solid #ffd8c1;border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;justify-content:center}.weight-total-box span{font-size:9px;color:#b45a2c;font-weight:800}.weight-total-box b{font-size:15px;color:var(--orange);margin-top:3px}.weight-grand-total{display:flex;justify-content:space-between;align-items:center;background:var(--ink);color:#fff;border-radius:12px;padding:14px 16px}.weight-grand-total span{font-size:11px;font-weight:900}.weight-grand-total-right{display:flex;align-items:center;gap:10px;font-size:inherit}.weight-grand-total b{font-size:19px;color:#fff;font-weight:950}.weight-grand-total-thin{padding:8px 16px}.weight-grand-total-thin span{font-size:10px}.weight-grand-total-thin b{font-size:15px}.weight-note{font-size:9px;color:var(--muted)}.weight-actions{display:flex;justify-content:flex-end}
 /* v132 — Embarque e solicitação de abastecimento */
 .embark-fuel-section{grid-column:1/-1;border:1px solid var(--line);border-radius:14px;padding:14px;background:#fff}
 .embark-fuel-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:12px;align-items:stretch}
@@ -1932,6 +1932,7 @@ async function apply(){
    alerta piscando para os pedidos mais recentes. */
 let fuelPollTimer=null;
 let fuelKnownIds=new Set();
+let _fuelConcluindo=false;
 let fuelAudioCtx=null;
 function playFuelBeep(){
   try{
@@ -2032,12 +2033,16 @@ function renderAbastecimentoList(list){
   el.innerHTML=`<div class="workspace-head"><h2 class="workspace-title">⛽ Abastecimento</h2><p class="workspace-sub">${pending.length} solicitação${pending.length!==1?'ões':''} pendente${pending.length!==1?'s':''} — atualiza automaticamente.</p></div>${pendingBlock}${historyBlock}`;
 }
 async function concluirAbastecimentoUI(id){
+  if(_fuelConcluindo)return;
   if(!confirm('Confirmar que este voo já foi abastecido?'))return;
+  _fuelConcluindo=true;
   try{
     await chcData.concluirAbastecimento(id);
     await pollFuelRequests();
   }catch(e){
     alert('Não foi possível concluir o abastecimento.\n\n'+(e?.message||e));
+  }finally{
+    _fuelConcluindo=false;
   }
 }
 /* Ícone ⛽ na linha do voo: leva direto para a aba Abastecimento e destaca
@@ -2205,13 +2210,17 @@ function recomputeFuelCalc(){
   }
 }
 async function concluirAbastecimentoFromModal(id){
+  if(_fuelConcluindo)return;
   if(!confirm('Confirmar que este voo já foi abastecido?'))return;
+  _fuelConcluindo=true;
   try{
     await chcData.concluirAbastecimento(id);
     closeFuelDetail();
     await pollFuelRequests();
   }catch(e){
     alert('Não foi possível concluir o abastecimento.\n\n'+(e?.message||e));
+  }finally{
+    _fuelConcluindo=false;
   }
 }
 
@@ -4823,8 +4832,11 @@ async function renderAtendimento(){
       const delayCode=String(log.codigoAtraso||log.motivoAtraso||'').trim();
       const delayObs=String(log.observacaoAtraso||'').trim();
       const late=typeof isLate==='function'?isLate(f):atendimentoStatusClass(f)==='warning';
-      const delayLine=(late||delayCode||delayObs)
-        ? `<div class="atendimento-delay"><strong>ATRASO:</strong> ${late?'Sim':'Não'}${delayCode?` &nbsp;|&nbsp; <strong>CÓDIGO:</strong> ${esc(delayCode)}`:''}${delayObs?` &nbsp;|&nbsp; <strong>OBSERVAÇÃO:</strong> ${esc(delayObs)}`:''}</div>`
+      const delayParts=[];
+      if(delayCode)delayParts.push(`<strong>CÓDIGO:</strong> ${esc(delayCode)}`);
+      if(delayObs)delayParts.push(`<strong>OBSERVAÇÃO:</strong> ${esc(delayObs)}`);
+      const delayLine=delayParts.length
+        ? `<div class="atendimento-delay">${delayParts.join(' &nbsp;|&nbsp; ')}</div>`
         : '';
       let statusClass=atendimentoStatusClass(f);
       if(statusClass!=='danger'&&(late||delayCode||delayObs))statusClass='danger';
@@ -5210,27 +5222,27 @@ function formatKg(v){return Number(v||0).toLocaleString('pt-BR')+' kg'}
 let PESO_LOG_AIRCRAFT=null;
 /* Faixas operacionais: até 95% do PMD = verde; 95% a 100% = amarelo; acima de 100% = vermelho. */
 function updateAircraftCalc(cargaTotal,tripulacao,combustivelTotal){
-  const box=document.getElementById('aircraftCalcBox');
-  if(!box)return;
+  const pillEl=document.getElementById('pesoVooStatusPill');
+  if(!pillEl)return;
   const ap=PESO_LOG_AIRCRAFT;
   const activeModel=activeDetailsFlight?.model||modelOf(activeDetailsFlight?.reg||'');
   const unit=weightUnitForAircraft(activeDetailsFlight?.reg||'',activeModel);
   const pmd=Number(ap?.pesoMaximo||0);
   const bow=Number(ap?.pesoCartaC||0);
   if(!ap||(!pmd&&!bow)){
-    box.innerHTML='<div class="weight-note"><small>Cadastre o PMD e o Peso Carta C (BOW) desta aeronave em Configurações › Aeronaves para ver o cálculo automático.</small></div>';
+    pillEl.innerHTML='';
     return;
   }
   const tow=bow+Number(cargaTotal||0)+Number(tripulacao||0)+Number(combustivelTotal||0);
-  const pct=pmd?(tow/pmd*100):0;
-  let cor='verde',statusTxt='✅ DENTRO DO LIMITE',emoji='🟢';
-  if(pmd&&tow>pmd){cor='vermelho';statusTxt='❌ ACIMA DO LIMITE';emoji='🔴';}
-  else if(pmd&&pct>=95){cor='amarelo';statusTxt='⚠️ PRÓXIMO DO LIMITE';emoji='🟡';}
   const excesso=tow-pmd;
-  const excessoHtml=excesso>0 ? `
-    <div class="tow-result tow-excesso"><div class="excesso-label">🔴 EXCESSO DE PESO</div><div class="excesso-value">${formatWeight(excesso,unit)}</div><div class="excesso-status">ACIMA DO LIMITE — NÃO PODE DECOLAR</div></div>` : `
-    <div class="tow-result tow-${cor}"><div class="tow-label">${emoji} Peso de Decolagem</div><div class="tow-value">${formatWeight(tow,unit)}</div><div class="tow-sub">PMD: ${formatWeight(pmd,unit)} • ${pct.toFixed(1)}% do PMD</div><div class="tow-status">Status: ${statusTxt}</div></div>`;
-  box.innerHTML=`<div class="tow-refs"><div><span>PMD</span><b>${formatWeight(pmd,unit)}</b></div><div><span>BOW</span><b>${formatWeight(bow,unit)}</b></div></div>${excessoHtml}`;
+  const towInfo=`TOW ${formatWeight(tow,unit)} • PMD ${formatWeight(pmd,unit)} • BOW ${formatWeight(bow,unit)}`;
+  if(pmd&&excesso>0){
+    pillEl.innerHTML=`<span class="peso-pill peso-pill-danger" title="${towInfo}">⚠ EXCESSO ${formatWeight(excesso,unit)}</span>`;
+  }else if(pmd){
+    pillEl.innerHTML=`<span class="peso-pill peso-pill-ok" title="${towInfo}">✓ DENTRO DO PESO</span>`;
+  }else{
+    pillEl.innerHTML='';
+  }
 }
 function updateFlightWeightTotals(){
   const passageiros=pesoNum('pesoPassageiro'),bagagem=pesoNum('pesoBagagem'),carga=pesoNum('pesoCarga'),tripulacao=pesoNum('pesoTripulacao'),combustivelTotal=pesoNum('combustivelTotal');
@@ -5303,12 +5315,8 @@ function openFlightPesoLogRender(f){
         <div class="weight-total-box weight-total-box-cargo"><span>Total de peso</span><b id="pesoTotalCarga">${formatWeight((Number(displayValue(w.passageiro))||0)+(Number(displayValue(w.bagagem))||0)+(Number(displayValue(w.carga))||0),unit)}</b></div>
       </div>
     </div>
-    <div class="weight-grand-total weight-grand-total-thin"><span>Peso do voo</span><b id="pesoTotalVoo">${formatWeightBothUnits((Number(displayValue(w.passageiro))||0)+(Number(displayValue(w.bagagem))||0)+(Number(displayValue(w.carga))||0)+(Number(displayValue(w.tripulacao))||0)+(Number(displayValue(w.combustivelTotal))||0),unit)}</b></div>
+    <div class="weight-grand-total weight-grand-total-thin"><span>Peso do voo</span><span class="weight-grand-total-right"><b id="pesoTotalVoo">${formatWeightBothUnits((Number(displayValue(w.passageiro))||0)+(Number(displayValue(w.bagagem))||0)+(Number(displayValue(w.carga))||0)+(Number(displayValue(w.tripulacao))||0)+(Number(displayValue(w.combustivelTotal))||0),unit)}</b><span id="pesoVooStatusPill"></span></span></div>
     ${aircraftLimitsNote}
-    <div class="weight-section weight-section-full"><div class="weight-section-title">PESO DE DECOLAGEM (${esc(f.reg||'—')}) · ${unit}</div>
-      <div id="aircraftCalcBox"></div>
-      <div class="weight-note" style="margin-top:8px"><small>TOW = BOW + Carga do voo + Tripulação + Combustível total</small></div>
-    </div>
     <div class="weight-note"><small>Unidade operacional: ${unit}. PMD, BOW e limites da aeronave seguem exatamente a unidade cadastrada em Configurações › Aeronaves. Os pesos lançados no voo são armazenados internamente em kg.</small></div>
     <div class="flight-log-panel">
       <div class="flight-log-section">
