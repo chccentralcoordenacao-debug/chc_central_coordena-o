@@ -1221,11 +1221,35 @@ const INDISP_HEADERS=[
   'inspetor','mecanico','ata','previsaoRTS','tripulacao','programacaoCumprida',
   'vooTransferido','numeroVoo','numeroPax','destino','acionamento','corte',
   'emails','status','indisponibilizadoPor','indisponibilizadoEm',
-  'observacaoRetorno','disponibilizadoPor','disponibilizadoEm'
+  'observacaoRetorno','disponibilizadoPor','disponibilizadoEm',
+  /* NOVIDADE v26: numeroRef (referência curta e sequencial pra citar o caso,
+     tipo #23), acaoCorretiva (separado da descrição/pane reportada),
+     inicioPrevisto (data/hora planejada de início, pode diferir do início
+     real em dataInicio) e fimRealValidado (segunda confirmação do fim real,
+     depois do fimRealComunicado que já é gravado em disponibilizadoEm) —
+     ver comentário completo na função indisponibilidadesSheet() logo abaixo
+     sobre por que essas colunas ficam sempre no FIM da lista. */
+  'numeroRef','acaoCorretiva','inicioPrevisto','fimRealValidado'
 ];
 function indisponibilidadesSheet(){
   const sh=sheet('Indisponibilidades');
-  if(sh.getLastRow()===0)sh.appendRow(INDISP_HEADERS);
+  if(sh.getLastRow()===0){
+    sh.appendRow(INDISP_HEADERS);
+  }else{
+    // Migração leve: se a aba já existia de uma versão anterior (sem as
+    // colunas novas do fim de INDISP_HEADERS), estende a linha de
+    // cabeçalho pra incluir as colunas que faltam — SEM mexer nas colunas
+    // já existentes, então nenhuma linha antiga é reindexada/embaralhada.
+    // Como tudo é lido/gravado por índice de INDISP_HEADERS (não pelo texto
+    // do cabeçalho), isso é só para o cabeçalho visível na planilha não
+    // ficar desatualizado; os dados funcionam mesmo sem essa migração.
+    const lastCol=Math.max(sh.getLastColumn(),1);
+    const headerValues=sh.getRange(1,1,1,lastCol).getValues()[0].map(String);
+    if(headerValues.length<INDISP_HEADERS.length){
+      const faltantes=INDISP_HEADERS.slice(headerValues.length);
+      sh.getRange(1,headerValues.length+1,1,faltantes.length).setValues([faltantes]);
+    }
+  }
   return sh;
 }
 function indispRowToObj(row){
@@ -1239,6 +1263,11 @@ function criarIndisponibilidade(tail,dados,actor){
   const d=dados||{};
   const sh=indisponibilidadesSheet();
   const id=Utilities.getUuid();
+  // Referência curta e sequencial (nº do caso) — pega a contagem de linhas
+  // ANTES de inserir a nova (cabeçalho é a linha 1, então getLastRow() já
+  // corresponde à posição de inserção da próxima linha de dados: 1 quando
+  // só há cabeçalho, 2 depois da 1ª indisponibilidade, etc.).
+  const numeroRef=sh.getLastRow();
   const agora=new Date().toISOString();
   const quem=(actor&&(actor.nome||actor.name))||'';
   const valoresPorCampo={
@@ -1266,13 +1295,17 @@ function criarIndisponibilidade(tail,dados,actor){
     indisponibilizadoEm:agora,
     observacaoRetorno:'',
     disponibilizadoPor:'',
-    disponibilizadoEm:''
+    disponibilizadoEm:'',
+    numeroRef:String(numeroRef),
+    acaoCorretiva:String(d.acaoCorretiva||''),
+    inicioPrevisto:String(d.inicioPrevisto||''),
+    fimRealValidado:''
   };
   sh.appendRow(INDISP_HEADERS.map(h=>valoresPorCampo[h]));
   SpreadsheetApp.flush();
   // Mantém o Status da aeronave sincronizado, igual já era feito antes.
   updateAircraftStatusSingle(t,'INDISPONIVEL');
-  return {id:id,ok:true};
+  return {id:id,numeroRef:numeroRef,ok:true};
 }
 /* Grava só os campos informados em updates (por NOME de coluna) numa linha
    já existente da aba Indisponibilidades. */
@@ -1296,15 +1329,25 @@ function disponibilizarAeronave(tail,dados,actor){
   const statusIdx=INDISP_HEADERS.indexOf('status');
   const quem=(actor&&(actor.nome||actor.name))||'';
   const agora=new Date().toISOString();
+  // fimRealComunicado (v26): antes o momento do fechamento era sempre
+  // "agora", sem o coordenador poder ajustar — agora, se o front-end mandar
+  // um valor (dados.fimRealComunicado), ele é usado no lugar; senão cai no
+  // comportamento antigo (agora). O valor continua gravado na coluna
+  // indisponibilizadoEm já existente — só quem preenche esse dado mudou.
+  const fimComunicado=String(d.fimRealComunicado||agora);
   let achou=false;
   for(let i=values.length-1;i>=1;i--){
     if(normKey(values[i][matriculaIdx])===normKey(t)&&String(values[i][statusIdx])==='ABERTA'){
-      setIndispRowFields(sh,i+1,{
+      const updates={
         status:'CONCLUIDA',
         observacaoRetorno:String(d.observacao||d.obs||''),
         disponibilizadoPor:quem,
-        disponibilizadoEm:agora
-      });
+        disponibilizadoEm:fimComunicado
+      };
+      // fimRealValidado (v26): opcional — só grava se o coordenador marcou
+      // "já validado" no modal e informou a data/hora.
+      if(d.fimRealValidado)updates.fimRealValidado=String(d.fimRealValidado);
+      setIndispRowFields(sh,i+1,updates);
       achou=true;
       break;
     }
@@ -1336,7 +1379,7 @@ function atualizarIndisponibilidadeAberta(tail,dados,actor){
     }
   }
   if(rowNumber===null)throw new Error('Não há indisponibilidade em aberto para "'+t+'".');
-  const campos=['tipoIndisponibilidade','descricaoBR','descricaoEN','inspetor','mecanico','ata','previsaoRTS','tripulacao'];
+  const campos=['tipoIndisponibilidade','descricaoBR','descricaoEN','inspetor','mecanico','ata','previsaoRTS','tripulacao','acaoCorretiva','inicioPrevisto'];
   const updates={};
   campos.forEach(c=>{ if(d[c]!==undefined && d[c]!==null) updates[c]=String(d[c]); });
   if(Object.keys(updates).length)setIndispRowFields(sh,rowNumber,updates);
@@ -1386,15 +1429,17 @@ function listIndisponibilidadesHistorico(tail,dias){
 
 /* ---------- Tradução automática BR->EN da Descrição Reportada (v24) ----------
    Usa o serviço LanguageApp, nativo do Google Apps Script — não depende de
-   nenhuma chave de API externa nem de custo adicional. */
+   nenhuma chave de API externa nem de custo adicional.
+   v25: antes, qualquer falha do LanguageApp.translate() era engolida e a
+   função devolvia '' silenciosamente — o campo EN ficava em branco sem
+   nenhum aviso, dando a impressão de "a tradução não faz nada". Agora o
+   erro é repassado para cima, para o handler global (catch em handle())
+   devolver {error:...} e o front-end mostrar "Não foi possível traduzir
+   automaticamente — edite manualmente." no lugar de falhar em silêncio. */
 function translatePtToEn(texto){
   const t=String(texto||'').trim();
   if(!t)return '';
-  try{
-    return LanguageApp.translate(t,'pt','en');
-  }catch(e){
-    return '';
-  }
+  return LanguageApp.translate(t,'pt','en');
 }
 
 /* ---------- Histórico de Disponibilidade da Frota (indicadores de tendência) ----------
