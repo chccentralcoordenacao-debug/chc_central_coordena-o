@@ -1,4 +1,4 @@
-/* ===== CHC — Backend em Google Apps Script (v23 — Indisponibilidade de aeronaves com histórico) =====
+/* ===== CHC — Backend em Google Apps Script (v24 — Formulário completo de Indisponibilidade + tradução BR/EN) =====
 
    NOVIDADE NESTA VERSÃO (v6)
    ---------------------------
@@ -312,6 +312,7 @@ function handle(e){
     if(action==='update'&&type==='indisponibilidade')return json(disponibilizarAeronave(body.tail||params.tail,body,body.actor||{}));
     if(action==='list'&&type==='indisponibilidadesAbertas')return json(listIndisponibilidadesAbertas());
     if(action==='list'&&type==='indisponibilidadesHistorico')return json(listIndisponibilidadesHistorico(params.tail||body.tail,params.dias||body.dias));
+    if(action==='translate'&&type==='ptEn')return json({texto:translatePtToEn(body.texto||params.texto)});
 
     /* Indicadores de tendência (Painel de Voos): histórico diário de
        disponibilidade da frota, usado para calcular "média 7 dias". */
@@ -1195,16 +1196,41 @@ function updateAircraftStatusSingle(tail,status){
   return r;
 }
 
-/* ---------- Indisponibilidade de Aeronaves (histórico completo — v23) ----------
+/* ---------- Indisponibilidade de Aeronaves (histórico completo — v24) ----------
    Uma linha por EVENTO de indisponibilidade (não por aeronave). Enquanto o
    evento está em aberto, status='ABERTA' e os campos de disponibilização
    ficam vazios; ao disponibilizar, a mesma linha é fechada (status vira
    'CONCLUIDA' e os campos de disponibilização são preenchidos) — assim dá
-   pra calcular depois quanto tempo cada aeronave ficou parada. */
+   pra calcular depois quanto tempo cada aeronave ficou parada.
+
+   NOVIDADE v24: formulário completo (modal "Indisponibilizar" no front-end),
+   com tipo, data/hora de início, descrição BR/EN (traduzida automaticamente
+   via LanguageApp — ver translatePtToEn mais abaixo), inspetor, mecânico
+   responsável, ATA, previsão de disponibilidade (RTS), tripulação do
+   reporte, se a programação prevista foi cumprida e, quando não foi, os
+   dados da Ocorrência (voo transferido, número do voo, PAX, destino,
+   acionamento, corte).
+
+   As colunas são referenciadas pelo NOME (INDISP_HEADERS), não por posição
+   fixa — assim, se algum campo novo precisar ser adicionado no futuro, basta
+   incluir na lista abaixo, sem risco de embaralhar os dados já gravados nas
+   colunas existentes. */
+const INDISP_HEADERS=[
+  'id','matricula','tipoIndisponibilidade','dataInicio','descricaoBR','descricaoEN',
+  'inspetor','mecanico','ata','previsaoRTS','tripulacao','programacaoCumprida',
+  'vooTransferido','numeroVoo','numeroPax','destino','acionamento','corte',
+  'emails','status','indisponibilizadoPor','indisponibilizadoEm',
+  'observacaoRetorno','disponibilizadoPor','disponibilizadoEm'
+];
 function indisponibilidadesSheet(){
   const sh=sheet('Indisponibilidades');
-  if(sh.getLastRow()===0)sh.appendRow(['id','matricula','motivo','observacao','previsaoRetorno','emails','status','indisponibilizadoPor','indisponibilizadoEm','observacaoRetorno','disponibilizadoPor','disponibilizadoEm']);
+  if(sh.getLastRow()===0)sh.appendRow(INDISP_HEADERS);
   return sh;
+}
+function indispRowToObj(row){
+  const obj={};
+  INDISP_HEADERS.forEach((h,i)=>{obj[h]=row[i]!==undefined&&row[i]!==null?String(row[i]):'';});
+  return obj;
 }
 function criarIndisponibilidade(tail,dados,actor){
   const t=String(tail||'').trim();
@@ -1214,24 +1240,50 @@ function criarIndisponibilidade(tail,dados,actor){
   const id=Utilities.getUuid();
   const agora=new Date().toISOString();
   const quem=(actor&&(actor.nome||actor.name))||'';
-  sh.appendRow([
-    id,t,
-    String(d.motivo||''),
-    String(d.observacao||d.obs||''),
-    String(d.previsaoRetorno||d.previsao||''),
-    String(d.emails||''),
-    'ABERTA',
-    quem,agora,
-    '','',''
-  ]);
+  const valoresPorCampo={
+    id:id,
+    matricula:t,
+    tipoIndisponibilidade:String(d.tipoIndisponibilidade||d.motivo||''),
+    dataInicio:String(d.dataInicio||agora),
+    descricaoBR:String(d.descricaoBR||d.observacao||d.obs||''),
+    descricaoEN:String(d.descricaoEN||''),
+    inspetor:String(d.inspetor||''),
+    mecanico:String(d.mecanico||''),
+    ata:String(d.ata||''),
+    previsaoRTS:String(d.previsaoRTS||d.previsaoRetorno||d.previsao||''),
+    tripulacao:String(d.tripulacao||''),
+    programacaoCumprida:String(d.programacaoCumprida||''),
+    vooTransferido:String(d.vooTransferido||''),
+    numeroVoo:String(d.numeroVoo||''),
+    numeroPax:String(d.numeroPax||''),
+    destino:String(d.destino||''),
+    acionamento:String(d.acionamento||''),
+    corte:String(d.corte||''),
+    emails:String(d.emails||''),
+    status:'ABERTA',
+    indisponibilizadoPor:quem,
+    indisponibilizadoEm:agora,
+    observacaoRetorno:'',
+    disponibilizadoPor:'',
+    disponibilizadoEm:''
+  };
+  sh.appendRow(INDISP_HEADERS.map(h=>valoresPorCampo[h]));
   SpreadsheetApp.flush();
   // Mantém o Status da aeronave sincronizado, igual já era feito antes.
   updateAircraftStatusSingle(t,'INDISPONIVEL');
   return {id:id,ok:true};
 }
+/* Grava só os campos informados em updates (por NOME de coluna) numa linha
+   já existente da aba Indisponibilidades. */
+function setIndispRowFields(sh,rowNumber,updates){
+  Object.keys(updates).forEach(h=>{
+    const idx=INDISP_HEADERS.indexOf(h);
+    if(idx>=0)sh.getRange(rowNumber,idx+1).setValue(updates[h]);
+  });
+}
 /* Fecha a indisponibilidade ABERTA mais recente da aeronave (busca de trás
    pra frente na planilha). Se não achar nenhuma aberta (ex.: aeronave que
-   ficou Indisponível antes da v23 existir), ainda assim disponibiliza a
+   ficou Indisponível antes desta aba existir), ainda assim disponibiliza a
    aeronave normalmente — só não terá um evento de histórico para fechar. */
 function disponibilizarAeronave(tail,dados,actor){
   const t=String(tail||'').trim();
@@ -1239,12 +1291,19 @@ function disponibilizarAeronave(tail,dados,actor){
   const d=dados||{};
   const sh=indisponibilidadesSheet();
   const values=sh.getDataRange().getValues();
+  const matriculaIdx=INDISP_HEADERS.indexOf('matricula');
+  const statusIdx=INDISP_HEADERS.indexOf('status');
   const quem=(actor&&(actor.nome||actor.name))||'';
   const agora=new Date().toISOString();
   let achou=false;
   for(let i=values.length-1;i>=1;i--){
-    if(normKey(values[i][1])===normKey(t)&&String(values[i][6])==='ABERTA'){
-      sh.getRange(i+1,7,1,6).setValues([[ 'CONCLUIDA', values[i][7], values[i][8], String(d.observacao||d.obs||''), quem, agora ]]);
+    if(normKey(values[i][matriculaIdx])===normKey(t)&&String(values[i][statusIdx])==='ABERTA'){
+      setIndispRowFields(sh,i+1,{
+        status:'CONCLUIDA',
+        observacaoRetorno:String(d.observacao||d.obs||''),
+        disponibilizadoPor:quem,
+        disponibilizadoEm:agora
+      });
       achou=true;
       break;
     }
@@ -1254,29 +1313,21 @@ function disponibilizarAeronave(tail,dados,actor){
   return {ok:true,eventoFechado:achou};
 }
 /* Devolve, por aeronave, só o evento ABERTO mais recente — é o que a tela
-   de Indisponibilidade precisa mostrar (motivo/observação/previsão atuais). */
+   de Indisponibilidade precisa mostrar (tipo/descrição/previsão RTS atuais). */
 function listIndisponibilidadesAbertas(){
   const sh=indisponibilidadesSheet();
   const values=sh.getDataRange().getValues();
+  const statusIdx=INDISP_HEADERS.indexOf('status');
+  const matriculaIdx=INDISP_HEADERS.indexOf('matricula');
   const porAeronave={};
   for(let i=1;i<values.length;i++){
     const row=values[i];
-    if(String(row[6])!=='ABERTA')continue;
-    const tail=String(row[1]||'').trim();
+    if(String(row[statusIdx])!=='ABERTA')continue;
+    const tail=String(row[matriculaIdx]||'').trim();
     if(!tail)continue;
-    const evento={
-      id:String(row[0]||''),
-      matricula:tail,
-      motivo:String(row[2]||''),
-      observacao:String(row[3]||''),
-      previsaoRetorno:String(row[4]||''),
-      emails:String(row[5]||''),
-      indisponibilizadoPor:String(row[7]||''),
-      indisponibilizadoEm:String(row[8]||'')
-    };
     // Se houver mais de uma linha ABERTA para a mesma aeronave (não deveria
     // acontecer no uso normal), fica valendo a mais recente (linha maior).
-    porAeronave[tail]=evento;
+    porAeronave[tail]=indispRowToObj(row);
   }
   return Object.values(porAeronave);
 }
@@ -1286,31 +1337,33 @@ function listIndisponibilidadesAbertas(){
 function listIndisponibilidadesHistorico(tail,dias){
   const sh=indisponibilidadesSheet();
   const values=sh.getDataRange().getValues();
+  const matriculaIdx=INDISP_HEADERS.indexOf('matricula');
+  const indispEmIdx=INDISP_HEADERS.indexOf('indisponibilizadoEm');
   const t=tail?normKey(tail):'';
   const limite=dias?new Date(Date.now()-Number(dias)*24*60*60*1000):null;
   const out=[];
   for(let i=1;i<values.length;i++){
     const row=values[i];
     if(!row[0])continue;
-    if(t&&normKey(row[1])!==t)continue;
-    if(limite&&row[8]&&new Date(row[8])<limite)continue;
-    out.push({
-      id:String(row[0]||''),
-      matricula:String(row[1]||''),
-      motivo:String(row[2]||''),
-      observacao:String(row[3]||''),
-      previsaoRetorno:String(row[4]||''),
-      emails:String(row[5]||''),
-      status:String(row[6]||''),
-      indisponibilizadoPor:String(row[7]||''),
-      indisponibilizadoEm:String(row[8]||''),
-      observacaoRetorno:String(row[9]||''),
-      disponibilizadoPor:String(row[10]||''),
-      disponibilizadoEm:String(row[11]||'')
-    });
+    if(t&&normKey(row[matriculaIdx])!==t)continue;
+    if(limite&&row[indispEmIdx]&&new Date(row[indispEmIdx])<limite)continue;
+    out.push(indispRowToObj(row));
   }
   out.sort((a,b)=>String(b.indisponibilizadoEm).localeCompare(String(a.indisponibilizadoEm)));
   return out;
+}
+
+/* ---------- Tradução automática BR->EN da Descrição Reportada (v24) ----------
+   Usa o serviço LanguageApp, nativo do Google Apps Script — não depende de
+   nenhuma chave de API externa nem de custo adicional. */
+function translatePtToEn(texto){
+  const t=String(texto||'').trim();
+  if(!t)return '';
+  try{
+    return LanguageApp.translate(t,'pt','en');
+  }catch(e){
+    return '';
+  }
 }
 
 /* ---------- Histórico de Disponibilidade da Frota (indicadores de tendência) ----------
