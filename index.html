@@ -2011,6 +2011,7 @@ async function renderAbastecimento(){
   sectionWorkspace.innerHTML='<div class="workspace-card"><div class="empty-work">Carregando solicitações de abastecimento…</div></div>';
   const list=await chcData.listPendingFuelRequests();
   window._fuelPendingCache=list;
+  if(currentSection!=='abastecimento')return;
   renderAbastecimentoList(list);
 }
 function fuelSetHistoryFilter(v){fuelHistoryDateFilter=v||'';renderAbastecimentoList(window._fuelPendingCache||[]);}
@@ -3410,6 +3411,7 @@ async function renderHistorico(){
   setWorkspaceParent('painel','home');
   const all=await allFlightsAllBases();
   const flights=all.filter(f=>HISTORICO_STATUS_PERMITIDOS.includes(statusHistorico(f))||isAutoArquivado(f));
+  if(currentSection!=='historico'&&currentSection!=='finalizados')return;
   sectionWorkspace.innerHTML=workspaceHead('▤ Histórico','Voos Finalizados, Cancelados ou Transferidos de todas as bases (inclui voos arquivados automaticamente após '+AUTO_ARQUIVO_DIAS+' dia(s) sem atualização) — você só pode apagar voos da sua base ('+esc(session.base||'—')+')','<button class="tool-btn" onclick="exportFlightsCSV()">⇩ EXPORTAR CSV</button>')+
     `<div class="workspace-card"><div class="row"><label>De<input id="histFrom" type="date"></label><label>Até<input id="histTo" type="date"></label></div><div style="margin-top:12px"><select id="histStatus"><option value="">Todos os status</option><option value="FINALIZADO">Finalizado</option><option value="CANCELADO">Cancelado</option><option value="TRANSFERIDO">Transferido</option><option value="AUTO_ARQUIVADO">Arquivado (sem atualização)</option></select></div></div><div class="workspace-card"><div id="historyTable"></div></div>`;
   document.getElementById('histFrom').onchange=renderHistoryTable;document.getElementById('histTo').onchange=renderHistoryTable;document.getElementById('histStatus').onchange=renderHistoryTable;
@@ -3483,6 +3485,10 @@ async function renderAeronaves(){
   const baseOptions=['Todas as bases',...bases].map(b=>`<option value="${esc(b)}">${esc(b)}</option>`).join('');
   const missingBaseCount=aircraft.filter(a=>a.base==='Sem base').length;
   const baseDataNote=missingBaseCount?`<div class="config-section-note" style="margin-bottom:10px;background:#fff8e8;border-color:#f0d28a;color:#7a5b00">⚠ ${missingBaseCount} aeronave(s) estão sem Base no cadastro. Use <b>ALTERAR BASE</b> para vincular rapidamente.</div>`:'';
+  // Guarda contra corrida: se o usuário já trocou de aba enquanto os dados
+  // ainda carregavam, não sobrescreve a tela da aba atual (bug reportado:
+  // Indisponibilidade ficava marcada no menu mas mostrava Aeronaves).
+  if(currentSection!=='aeronaves')return;
   sectionWorkspace.innerHTML=workspaceHead('✈ Aeronaves','Gerencie as aeronaves por base.',`<div class="aircraft-toolbar"><button class="tool-btn primary" onclick="openAircraftBaseModal()">⇄ ALTERAR BASE</button><select id="aircraftBaseFilter" class="tool-btn"><option value="Todas as bases">Todas as bases</option>${bases.map(b=>`<option value="${esc(b)}">${esc(b)}</option>`).join('')}</select><input id="aircraftQuickSearch" class="tool-btn" placeholder="Buscar prefixo" type="search"><button class="tool-btn aircraft-refresh-btn" title="Ler novamente do Google Sheets" onclick="refreshAeronavesFromSheets()">↻ Atualizar</button></div>`)+baseDataNote+baseGroupHtml();
   const bf=document.getElementById('aircraftBaseFilter'), q=document.getElementById('aircraftQuickSearch');
   bf.value=termState.base;
@@ -3749,6 +3755,7 @@ async function renderIndisponibilidade(){
     }).join('');
     return `<section class="aircraft-base-section"><div class="aircraft-base-head"><div class="aircraft-base-title">⌖ ${esc(base)}</div></div><div class="aircraft-base-body"><div class="aircraft-card-grid">${cards}</div></div></section>`;
   }).join(''):'<div class="workspace-card"><div class="empty-work">Nenhuma aeronave indisponível no momento. 🎉</div></div>';
+  if(currentSection!=='indisponibilidade')return;
   sectionWorkspace.innerHTML=workspaceHead('🛠 Indisponibilidade',`Controle de indisponibilidade da frota · ${totalIndisp} aeronave(s) indisponível(is) agora`,`<button class="tool-btn primary" onclick="openNovaIndisponibilidadeModal()">+ Nova Indisponibilidade</button><button class="tool-btn" onclick="openIndispEmailSettings()">✉ Destinatários padrão</button>`)+cardsHtml;
 }
 /* Botão do cabeçalho: escolher uma aeronave (entre as disponíveis) e abrir
@@ -4356,6 +4363,7 @@ async function renderRelatorios(){
   const checkGroup=(icon,title,name,options,selected)=>`<div class="report-filter-card"><div class="report-filter-card-head"><span>${icon}</span>${esc(title)}${selected.length?`<b>${selected.length}</b>`:''}</div><div class="report-filter-chips">${options.length?options.map(o=>`<label class="report-chip"><input type="checkbox" data-group="${esc(name)}" value="${esc(o)}" ${selected.includes(o)?'checked':''}><span>${esc(o)}</span></label>`).join(''):'<span class="report-filter-empty">Nenhum registro disponível</span>'}</div></div>`;
   const indOptions=[['resumo','📈','Resumo Operacional'],['pontualidade','⏱️','Pontualidade / Atrasos'],['distribuicao','📊','Distribuição por cliente/base/aeronave'],['assentos','🛫','Utilização de assentos (PAX)']];
   const indHTML=`<div class="report-filter-card report-filter-card-wide"><div class="report-filter-card-head"><span>🧭</span>Indicadores no relatório</div><div class="report-filter-chips">${indOptions.map(([k,icon,l])=>`<label class="report-chip report-chip-ind"><input type="checkbox" data-ind="${k}" ${reportFilters.ind[k]?'checked':''}><span>${icon} ${esc(l)}</span></label>`).join('')}</div></div>`;
+  if(currentSection!=='relatorios')return;
   sectionWorkspace.innerHTML=workspaceHead('📊 Análise Operacional','Escolha período, filtros e indicadores, depois clique em GERAR RELATÓRIO','<button class="tool-btn" onclick="exportFlightsCSV()">⇩ CSV (histórico bruto)</button>')+
     `<div class="workspace-card report-builder">
       <div class="row"><label>De<input id="repFrom" type="date" value="${esc(reportsFrom)}"></label><label>Até<input id="repTo" type="date" value="${esc(reportsTo)}"></label></div>
