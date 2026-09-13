@@ -1607,6 +1607,12 @@ const chcData=(function(){
     async disponibilizarAeronave(tail,dados){
       return await api({action:'update',type:'indisponibilidade'},{tail:String(tail||''),...dados,actor:{nome:session.name,funcao:session.funcao||session.perfil}});
     },
+    // Edita os dados de uma indisponibilidade que ainda está aberta (sem
+    // disponibilizar a aeronave). Requer suporte no Code.gs para a action
+    // 'updateOpen' na aba Indisponibilidades (mesma linha aberta do tail).
+    async atualizarIndisponibilidade(tail,dados){
+      return await api({action:'updateOpen',type:'indisponibilidade'},{tail:String(tail||''),...dados,actor:{nome:session.name,funcao:session.funcao||session.perfil}});
+    },
     async listIndisponibilidadesAbertas(){
       try{ return await api({action:'list',type:'indisponibilidadesAbertas'}); }catch(e){ console.warn('Falha ao buscar indisponibilidades abertas:',e); return []; }
     },
@@ -3688,6 +3694,13 @@ function openIndispEmailSettings(){
   saveIndispDefaultEmails(v.trim());
   alert('Destinatários padrão salvos neste navegador.');
 }
+function indispDiasCount(desde){
+  if(!desde)return null;
+  const d=new Date(desde);
+  if(isNaN(d.getTime()))return null;
+  const ms=Date.now()-d.getTime();
+  return Math.max(0,Math.floor(ms/86400000));
+}
 async function renderIndisponibilidade(){
   setWorkspaceParent('painel','home');
   const [records,eventosAbertos]=await Promise.all([
@@ -3702,37 +3715,141 @@ async function renderIndisponibilidade(){
     base:String(r['Base']||r.base||'').trim()||'Sem base',
     status:(()=>{const st=String(r['Status']||r.status||'').trim().toUpperCase();return (st==='INATIVO'||st==='INDISPONÍVEL'||st==='INDISPONIVEL')?'Indisponível':'Disponível'})(),
   });
-  const aircraft=records.map(normalized).filter(a=>a.tail);
-  window._indispRecords=aircraft;
+  const allAircraft=records.map(normalized).filter(a=>a.tail);
+  window._indispRecords=allAircraft;
   // Estado ATUAL vindo do Google Sheets (aba Indisponibilidades) — não mais
   // do localStorage, então aparece igual para todo mundo.
   const localState={};
   (eventosAbertos||[]).forEach(ev=>{localState[String(ev.matricula||'').trim().toUpperCase()]={
-    tipo:ev.tipoIndisponibilidade,obs:ev.descricaoBR,previsao:ev.previsaoRTS,desde:ev.indisponibilizadoEm,
-    ata:ev.ata,inspetor:ev.inspetor,mecanico:ev.mecanico
+    tipo:ev.tipoIndisponibilidade,obs:ev.descricaoBR,obsEn:ev.descricaoEN,previsao:ev.previsaoRTS,desde:ev.indisponibilizadoEm,
+    ata:ev.ata,inspetor:ev.inspetor,mecanico:ev.mecanico,tripulacao:ev.tripulacao
   };});
   window._indispOpenByTail=localState;
+  // Esta aba mostra somente as aeronaves indisponíveis agora — para
+  // registrar uma indisponibilidade de uma aeronave disponível, usa-se o
+  // botão "+ Nova Indisponibilidade" no cabeçalho.
+  const aircraft=allAircraft.filter(a=>a.status==='Indisponível');
   const groups={};
   aircraft.forEach(a=>(groups[a.base]||(groups[a.base]=[])).push(a));
   const order=[...bases.filter(b=>groups[b]),...Object.keys(groups).filter(b=>!bases.includes(b))];
-  const totalIndisp=aircraft.filter(a=>a.status==='Indisponível').length;
+  const totalIndisp=aircraft.length;
   const cardsHtml=order.length?order.map(base=>{
     const arr=groups[base]||[];
     const cards=arr.map(a=>{
-      const isUnavail=a.status==='Indisponível';
       const info=localState[a.tail]||{};
       const tailArg=JSON.stringify(a.tail).replace(/'/g,'&#39;');
-      const infoHtml=isUnavail?`<div class="indisp-info"><b>Tipo:</b> ${esc(info.tipo||'Não registrado')}${info.obs?`<br>${esc(info.obs)}`:''}${info.ata?`<br><b>ATA:</b> ${esc(info.ata)}`:''}${info.mecanico?`<br><b>Mecânico:</b> ${esc(info.mecanico)}`:''}${info.inspetor?`<br><b>Inspetor:</b> ${esc(info.inspetor)}`:''}${info.previsao?`<br><b>Previsão de Disponibilidade (RTS):</b> ${esc(new Date(info.previsao).toLocaleString('pt-BR'))}`:''}${info.desde?`<br><small>Indisponível desde ${esc(new Date(info.desde).toLocaleString('pt-BR'))}</small>`:''}</div>`:'';
-      return `<div class="aircraft-card ${isUnavail?'unavailable':''}">
+      const dias=indispDiasCount(info.desde);
+      const diasLabel=dias===null?'':(dias===0?'há menos de 1 dia':dias===1?'há 1 dia':`há ${dias} dias`);
+      return `<div class="aircraft-card unavailable aircraft-card-clickable" role="button" tabindex="0" title="Clique para ver a descrição da indisponibilidade" onclick='openIndispDetalhesModal(${tailArg})' onkeydown='if(event.key==="Enter"||event.key===" "){event.preventDefault();openIndispDetalhesModal(${tailArg})}'>
         <div class="aircraft-card-head"><div class="aircraft-card-title"><div class="aircraft-mini-marker">•</div><div><b>${esc(a.tail)}</b><small>${esc(a.model)}</small></div></div>
-        <span class="status-pill ${isUnavail?'':'done'}" style="${isUnavail?'background:#fff0ef;color:#d9323e':''}">${isUnavail?'INDISPONÍVEL':'DISPONÍVEL'}</span></div>
-        ${infoHtml}
-        <div class="aircraft-card-actions" style="margin-top:10px">${isUnavail?`<button type="button" class="tool-btn primary" onclick='openDisponibilizarModal(${tailArg})'>✅ Disponibilizar</button>`:`<button type="button" class="tool-btn" style="background:#fdeaea;color:#c0263a" onclick='openIndisponibilizarModal(${tailArg})'>🔧 Indisponibilizar</button>`}</div>
+        <span class="status-pill" style="background:#fff0ef;color:#d9323e">INDISPONÍVEL</span></div>
+        <div class="indisp-info"><b>Tipo:</b> ${esc(info.tipo||'Não registrado')}${diasLabel?`<br><b>Indisponível ${diasLabel}</b>`:''}${info.obs?`<br>${esc(info.obs)}`:''}</div>
+        <span class="fleet-health-edit">VER DESCRIÇÃO →</span>
       </div>`;
     }).join('');
     return `<section class="aircraft-base-section"><div class="aircraft-base-head"><div class="aircraft-base-title">⌖ ${esc(base)}</div></div><div class="aircraft-base-body"><div class="aircraft-card-grid">${cards}</div></div></section>`;
-  }).join(''):'<div class="workspace-card"><div class="empty-work">Nenhuma aeronave cadastrada.</div></div>';
-  sectionWorkspace.innerHTML=workspaceHead('🛠 Indisponibilidade',`Controle de indisponibilidade da frota · ${totalIndisp} aeronave(s) indisponível(is) agora`,`<button class="tool-btn" onclick="openIndispEmailSettings()">✉ Destinatários padrão</button>`)+cardsHtml;
+  }).join(''):'<div class="workspace-card"><div class="empty-work">Nenhuma aeronave indisponível no momento. 🎉</div></div>';
+  sectionWorkspace.innerHTML=workspaceHead('🛠 Indisponibilidade',`Controle de indisponibilidade da frota · ${totalIndisp} aeronave(s) indisponível(is) agora`,`<button class="tool-btn primary" onclick="openNovaIndisponibilidadeModal()">+ Nova Indisponibilidade</button><button class="tool-btn" onclick="openIndispEmailSettings()">✉ Destinatários padrão</button>`)+cardsHtml;
+}
+/* Botão do cabeçalho: escolher uma aeronave (entre as disponíveis) e abrir
+   o formulário de lançamento de indisponibilidade — já que esta aba agora
+   só lista quem já está indisponível. */
+function openNovaIndisponibilidadeModal(){
+  const disponiveis=(window._indispRecords||[]).filter(a=>a.status==='Disponível').sort((x,y)=>x.tail.localeCompare(y.tail));
+  if(!disponiveis.length)return alert('Não há aeronaves disponíveis para lançar uma indisponibilidade.');
+  const options=disponiveis.map(a=>`<option value="${esc(a.tail)}">${esc(a.tail)} — ${esc(a.model)} · ${esc(a.base)}</option>`).join('');
+  document.body.insertAdjacentHTML('beforeend',`<div class="aircraft-modal-backdrop" id="aircraftModal"><div class="aircraft-modal">
+    <h3>NOVA INDISPONIBILIDADE</h3>
+    <p>Selecione a aeronave que ficará indisponível.</p>
+    <label style="display:block;margin-top:10px;font-size:11px;font-weight:800">Aeronave
+      <select id="novaIndispTail" class="tool-btn" style="width:100%;margin-top:4px;display:block">${options}</select>
+    </label>
+    <div class="aircraft-modal-actions"><button class="tool-btn" onclick="closeAircraftModal()">CANCELAR</button><button class="tool-btn primary" onclick="continuarNovaIndisponibilidade()">CONTINUAR</button></div>
+  </div></div>`);
+}
+function continuarNovaIndisponibilidade(){
+  const tail=document.getElementById('novaIndispTail').value;
+  closeAircraftModal();
+  if(tail)openIndisponibilizarModal(tail);
+}
+/* Modal de leitura: mostra a descrição completa da indisponibilidade ao
+   clicar no card (em vez de abrir os dados cadastrais da aeronave). As
+   ações de edição/disponibilização ficam aqui dentro. */
+function openIndispDetalhesModal(tail){
+  const target=(window._indispRecords||[]).find(a=>a.tail===tail);
+  const info=(window._indispOpenByTail||{})[tail]||{};
+  if(!target)return;
+  const tailArg=JSON.stringify(tail).replace(/'/g,'&#39;');
+  const dias=indispDiasCount(info.desde);
+  const diasLabel=dias===null?'—':(dias===0?'menos de 1 dia':dias===1?'1 dia':`${dias} dias`);
+  document.body.insertAdjacentHTML('beforeend',`<div class="aircraft-modal-backdrop" id="aircraftModal"><div class="aircraft-modal indisp-modal">
+    <h3>INDISPONIBILIDADE — ${esc(tail)}</h3>
+    <p>${esc(target.model)}${target.base?' · Base '+esc(target.base):''}</p>
+    <div class="indisp-info" style="margin-top:8px">
+      <b>Tipo:</b> ${esc(info.tipo||'Não registrado')}<br>
+      <b>Indisponível há:</b> ${diasLabel}${info.desde?` <small>(desde ${esc(new Date(info.desde).toLocaleString('pt-BR'))})</small>`:''}
+      ${info.obs?`<br><b>Descrição:</b> ${esc(info.obs)}`:''}
+      ${info.ata?`<br><b>ATA:</b> ${esc(info.ata)}`:''}
+      ${info.mecanico?`<br><b>Mecânico:</b> ${esc(info.mecanico)}`:''}
+      ${info.inspetor?`<br><b>Inspetor:</b> ${esc(info.inspetor)}`:''}
+      ${info.tripulacao?`<br><b>Tripulação do Reporte:</b> ${esc(info.tripulacao)}`:''}
+      ${info.previsao?`<br><b>Previsão de Disponibilidade (RTS):</b> ${esc(new Date(info.previsao).toLocaleString('pt-BR'))}`:''}
+    </div>
+    <div class="aircraft-modal-actions"><button class="tool-btn" onclick="closeAircraftModal()">FECHAR</button><button class="tool-btn" onclick='closeAircraftModal();openAtualizarIndisponibilidadeModal(${tailArg})'>✎ Atualizar indisponibilidade</button><button class="tool-btn primary" onclick='closeAircraftModal();openDisponibilizarModal(${tailArg})'>✅ Disponibilizar</button></div>
+  </div></div>`);
+}
+/* Edita os dados da indisponibilidade em aberto (tipo, descrição, ATA,
+   mecânico, inspetor, previsão RTS, tripulação) sem disponibilizar a
+   aeronave — que continua sendo feito só pelo botão "Disponibilizar". */
+function openAtualizarIndisponibilidadeModal(tail){
+  const target=(window._indispRecords||[]).find(a=>a.tail===tail);
+  const info=(window._indispOpenByTail||{})[tail]||{};
+  if(!target)return;
+  const tailArg=JSON.stringify(tail).replace(/'/g,'&#39;');
+  const tipos=['Manutenção programada','Manutenção não programada / AOG','Falha técnica','Aguardando peça','Inspeção','Outro'];
+  const tipoOptions=tipos.map(t=>`<option ${t===info.tipo?'selected':''}>${esc(t)}</option>`).join('');
+  document.body.insertAdjacentHTML('beforeend',`<div class="aircraft-modal-backdrop" id="aircraftModal"><div class="aircraft-modal indisp-modal">
+    <h3>ATUALIZAR INDISPONIBILIDADE — ${esc(tail)}</h3>
+    <p>${esc(target.model)}${target.base?' · Base '+esc(target.base):''}</p>
+    <div class="indisp-grid">
+      <label>Tipo de Indisponibilidade
+        <select id="upIndispTipo">${tipoOptions}</select>
+      </label>
+      <label>ATA<input id="upIndispAta" type="text" value="${esc(info.ata||'')}"></label>
+      <label>Previsão de Disponibilidade (RTS)<input id="upIndispRTS" type="datetime-local" value="${info.previsao?esc(toDatetimeLocalValue(new Date(info.previsao))):''}"></label>
+      <label>Inspetor<input id="upIndispInspetor" type="text" value="${esc(info.inspetor||'')}"></label>
+      <label>Mecânico Responsável<input id="upIndispMecanico" type="text" value="${esc(info.mecanico||'')}"></label>
+      <label>Tripulação do Reporte<input id="upIndispTripulacao" type="text" value="${esc(info.tripulacao||'')}"></label>
+    </div>
+    <fieldset class="indisp-fieldset">
+      <legend>Descrição Reportada</legend>
+      <div class="indisp-desc-grid">
+        <label>BR<textarea id="upIndispDescBR">${esc(info.obs||'')}</textarea></label>
+        <label>EN<textarea id="upIndispDescEN">${esc(info.obsEn||'')}</textarea></label>
+      </div>
+    </fieldset>
+    <div class="aircraft-modal-actions"><button class="tool-btn" onclick="closeAircraftModal()">CANCELAR</button><button class="tool-btn primary" onclick='confirmAtualizarIndisponibilidade(${tailArg})'>SALVAR ATUALIZAÇÃO</button></div>
+  </div></div>`);
+}
+async function confirmAtualizarIndisponibilidade(tail){
+  const dados={
+    tipoIndisponibilidade:document.getElementById('upIndispTipo').value,
+    ata:document.getElementById('upIndispAta').value.trim(),
+    previsaoRTS:document.getElementById('upIndispRTS').value,
+    inspetor:document.getElementById('upIndispInspetor').value.trim(),
+    mecanico:document.getElementById('upIndispMecanico').value.trim(),
+    tripulacao:document.getElementById('upIndispTripulacao').value.trim(),
+    descricaoBR:document.getElementById('upIndispDescBR').value.trim(),
+    descricaoEN:document.getElementById('upIndispDescEN').value.trim(),
+  };
+  closeAircraftModal();
+  try{
+    const result=await chcData.atualizarIndisponibilidade(tail,dados);
+    if(!result||result.ok===false)throw new Error(result?.error||'O Google Sheets não confirmou a atualização.');
+    await renderIndisponibilidade();
+  }catch(e){
+    alert('Não foi possível atualizar a indisponibilidade: '+(e?.message||'erro desconhecido'));
+  }
 }
 function toDatetimeLocalValue(d){
   const pad=n=>String(n).padStart(2,'0');
@@ -5185,6 +5302,7 @@ async function showSection(section){
   if(section==='auditoria'&&!isAdministrator()){alert('A Auditoria é exclusiva para Administradores.');return;}
   if(required&&!can(required)){alert('Seu perfil não possui permissão para acessar esta área.');return;}
   currentSection=section;[...navMenu.querySelectorAll('button[data-section]')].forEach(b=>b.classList.toggle('active',b.dataset.section===section));
+  try{localStorage.setItem('chc_last_section',section);}catch(e){}
   if(section==='painel'||section==='operacao'){workspaceParentSection=section;workspaceParentConfig='home';
   }else if(section==='aeronaves'||section==='indisponibilidade'||section==='atendimento'||section==='historico'||section==='relatorios'||section==='config'||section==='auditoria'||section==='abastecimento'){workspaceParentSection='painel';workspaceParentConfig='home';}
   if(section==='painel'||section==='operacao'){
@@ -6020,6 +6138,13 @@ bindTime24Inputs(document);
   if(session.name&&session.base){
     loginScreen.classList.add('hidden');app.classList.remove('hidden');
     await apply();
+    // Restaura a última aba visitada (evita cair sempre no Painel/Aeronaves
+    // depois de um refresh — ex.: reabrir direto na aba Indisponibilidade).
+    let lastSection='';
+    try{lastSection=localStorage.getItem('chc_last_section')||'';}catch(e){}
+    if(lastSection&&lastSection!=='painel'){
+      try{await showSection(lastSection);}catch(e){console.warn('Não foi possível restaurar a última aba:',e);}
+    }
   }
 })();
 
