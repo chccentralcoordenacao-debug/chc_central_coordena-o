@@ -310,6 +310,7 @@ function handle(e){
        com histórico completo — ver nota de versão v23 no topo do arquivo). */
     if(action==='create'&&type==='indisponibilidade')return json(criarIndisponibilidade(body.tail||params.tail,body,body.actor||{}));
     if(action==='update'&&type==='indisponibilidade')return json(disponibilizarAeronave(body.tail||params.tail,body,body.actor||{}));
+    if(action==='updateOpen'&&type==='indisponibilidade')return json(atualizarIndisponibilidadeAberta(body.tail||params.tail,body,body.actor||{}));
     if(action==='list'&&type==='indisponibilidadesAbertas')return json(listIndisponibilidadesAbertas());
     if(action==='list'&&type==='indisponibilidadesHistorico')return json(listIndisponibilidadesHistorico(params.tail||body.tail,params.dias||body.dias));
     if(action==='translate'&&type==='ptEn')return json({texto:translatePtToEn(body.texto||params.texto)});
@@ -1311,6 +1312,36 @@ function disponibilizarAeronave(tail,dados,actor){
   SpreadsheetApp.flush();
   updateAircraftStatusSingle(t,'DISPONIVEL');
   return {ok:true,eventoFechado:achou};
+}
+/* Edita os dados da indisponibilidade ABERTA mais recente da aeronave (tipo,
+   descrição BR/EN, ATA, mecânico, inspetor, previsão RTS, tripulação) sem
+   fechá-la — ou seja, sem mexer em status/disponibilizadoPor/disponibilizadoEm
+   e sem alterar o Status da aeronave em Aeronaves. Usado pelo botão "✎
+   Atualizar indisponibilidade" da tela de Indisponibilidade (front-end v179+).
+   Só grava os campos que vierem preenchidos em dados; os demais mantêm o
+   valor já gravado na planilha. */
+function atualizarIndisponibilidadeAberta(tail,dados,actor){
+  const t=String(tail||'').trim();
+  if(!t)throw new Error('Informe a aeronave para atualizar a indisponibilidade.');
+  const d=dados||{};
+  const sh=indisponibilidadesSheet();
+  const values=sh.getDataRange().getValues();
+  const matriculaIdx=INDISP_HEADERS.indexOf('matricula');
+  const statusIdx=INDISP_HEADERS.indexOf('status');
+  let rowNumber=null;
+  for(let i=values.length-1;i>=1;i--){
+    if(normKey(values[i][matriculaIdx])===normKey(t)&&String(values[i][statusIdx])==='ABERTA'){
+      rowNumber=i+1;
+      break;
+    }
+  }
+  if(rowNumber===null)throw new Error('Não há indisponibilidade em aberto para "'+t+'".');
+  const campos=['tipoIndisponibilidade','descricaoBR','descricaoEN','inspetor','mecanico','ata','previsaoRTS','tripulacao'];
+  const updates={};
+  campos.forEach(c=>{ if(d[c]!==undefined && d[c]!==null) updates[c]=String(d[c]); });
+  if(Object.keys(updates).length)setIndispRowFields(sh,rowNumber,updates);
+  SpreadsheetApp.flush();
+  return {ok:true,atualizado:true};
 }
 /* Devolve, por aeronave, só o evento ABERTO mais recente — é o que a tela
    de Indisponibilidade precisa mostrar (tipo/descrição/previsão RTS atuais). */
