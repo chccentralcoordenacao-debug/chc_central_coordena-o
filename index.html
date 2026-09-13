@@ -3440,9 +3440,17 @@ async function deleteHistoricoFlight(f){
 }
 async function renderAeronaves(){
   setWorkspaceParent('painel','home');
-  const records=await chcData.listConfig('aeronaves');
-  const bases=BASES_CACHE.length?BASES_CACHE:await chcData.listBases();
-  BASES_CACHE=bases;
+  if(currentSection==='aeronaves')sectionWorkspace.innerHTML='<div class="workspace-card"><div class="empty-work">Carregando aeronaves…</div></div>';
+  let records,bases;
+  try{
+    records=await chcData.listConfig('aeronaves');
+    bases=BASES_CACHE.length?BASES_CACHE:await chcData.listBases();
+    BASES_CACHE=bases;
+  }catch(e){
+    console.error('Falha ao carregar Aeronaves:',e);
+    if(currentSection==='aeronaves')sectionWorkspace.innerHTML=workspaceHead('✈ Aeronaves','Gerencie as aeronaves por base.',`<button class="tool-btn" onclick="renderAeronaves()">↻ Tentar novamente</button>`)+`<div class="workspace-card"><div class="empty-work">Não foi possível carregar as aeronaves: ${esc(e?.message||'erro desconhecido')}</div></div>`;
+    return;
+  }
   const normalized=(r)=>({
     id:configRecordId(r),
     tail:String(r['Matrícula']||r.tail||'').trim().toUpperCase(),
@@ -3709,12 +3717,24 @@ function indispDiasCount(desde){
 }
 async function renderIndisponibilidade(){
   setWorkspaceParent('painel','home');
-  const [records,eventosAbertos]=await Promise.all([
-    chcData.listConfig('aeronaves'),
-    chcData.listIndisponibilidadesAbertas()
-  ]);
-  const bases=BASES_CACHE.length?BASES_CACHE:await chcData.listBases();
-  BASES_CACHE=bases;
+  // Mostra um estado de carregamento imediatamente: se algo falhar logo
+  // abaixo (Google Sheets lento/erro), a tela não fica "presa" mostrando
+  // o conteúdo da aba anterior (ex.: Aeronaves) enquanto o menu já marca
+  // Indisponibilidade como ativa.
+  if(currentSection==='indisponibilidade')sectionWorkspace.innerHTML='<div class="workspace-card"><div class="empty-work">Carregando indisponibilidades…</div></div>';
+  let records,eventosAbertos,bases;
+  try{
+    [records,eventosAbertos]=await Promise.all([
+      chcData.listConfig('aeronaves'),
+      chcData.listIndisponibilidadesAbertas()
+    ]);
+    bases=BASES_CACHE.length?BASES_CACHE:await chcData.listBases();
+    BASES_CACHE=bases;
+  }catch(e){
+    console.error('Falha ao carregar Indisponibilidade:',e);
+    if(currentSection==='indisponibilidade')sectionWorkspace.innerHTML=workspaceHead('🛠 Indisponibilidade','Controle de indisponibilidade da frota',`<button class="tool-btn" onclick="renderIndisponibilidade()">↻ Tentar novamente</button>`)+`<div class="workspace-card"><div class="empty-work">Não foi possível carregar as indisponibilidades: ${esc(e?.message||'erro desconhecido')}</div></div>`;
+    return;
+  }
   const normalized=(r)=>({
     tail:String(r['Matrícula']||r.tail||'').trim().toUpperCase(),
     model:String(r['Modelo']||r.model||'').trim()||'Aeronave CHC',
