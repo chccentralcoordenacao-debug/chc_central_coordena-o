@@ -196,7 +196,7 @@
 .aircraft-status-option:hover{background:#f5f6f7}
 .aircraft-status-option.available{color:#168354}.aircraft-status-option.available .sdot{background:#20a861}
 .aircraft-status-option.unavailable{color:#d9323e}.aircraft-status-option.unavailable .sdot{background:#e53935}.aircraft-add{min-height:72px;border:1px dashed #cfd6db;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:9px;color:#56616a;background:#fbfcfc;cursor:pointer}.aircraft-add:hover{border-color:var(--orange);color:var(--orange)}
-.aircraft-bulk-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:11px;padding-top:10px;border-top:1px solid #edf0f2;font-size:9px;color:var(--muted)}.aircraft-bulk-bar select{padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:9px;font-weight:800}.aircraft-modal-backdrop{position:fixed;inset:0;background:rgba(15,24,32,.32);display:flex;align-items:center;justify-content:center;z-index:9999;padding:18px}.aircraft-modal{width:min(470px,100%);background:#fff;border-radius:16px;box-shadow:0 24px 70px rgba(15,24,32,.25);border:1px solid var(--line);padding:18px}.aircraft-modal-selected{margin:0 0 12px;padding:8px 10px;background:#f7f8f9;border:1px solid #edf0f2;border-radius:9px;font-size:9px}.aircraft-modal-selected div{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}.aircraft-modal-selected span{padding:4px 7px;border-radius:7px;background:#fff3ec;color:var(--orange);font-weight:900}.aircraft-modal h3{margin:0 0 4px;font-size:14px}.aircraft-modal p{margin:0 0 14px;color:var(--muted);font-size:9px}.aircraft-modal label{display:block;font-size:9px;font-weight:900;margin-bottom:5px}.aircraft-modal select,.aircraft-modal input{width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:10px}.aircraft-modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:15px}
+.aircraft-bulk-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:11px;padding-top:10px;border-top:1px solid #edf0f2;font-size:9px;color:var(--muted)}.aircraft-bulk-bar select{padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:9px;font-weight:800}.aircraft-modal-backdrop{position:fixed;inset:0;background:rgba(15,24,32,.32);display:flex;align-items:center;justify-content:center;z-index:9999;padding:18px}.aircraft-modal{width:min(470px,100%);background:#fff;border-radius:16px;box-shadow:0 24px 70px rgba(15,24,32,.25);border:1px solid var(--line);padding:18px}.aircraft-modal-selected{margin:0 0 12px;padding:8px 10px;background:#f7f8f9;border:1px solid #edf0f2;border-radius:9px;font-size:9px}.aircraft-modal-selected div{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}.aircraft-modal-selected span{padding:4px 7px;border-radius:7px;background:#fff3ec;color:var(--orange);font-weight:900}.aircraft-modal h3{margin:0 0 4px;font-size:14px}.aircraft-modal p{margin:0 0 14px;color:var(--muted);font-size:9px}.aircraft-modal label{display:block;font-size:9px;font-weight:900;margin-bottom:5px}.aircraft-modal select,.aircraft-modal input{width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:10px}.aircraft-modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:15px}.indisp-modal{width:min(860px,96vw);max-height:92vh;overflow-y:auto}.indisp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:14px}.indisp-grid label,.indisp-fieldset label{display:block;font-size:9px;font-weight:900;margin-bottom:5px;color:var(--ink)}.indisp-grid select,.indisp-grid input,.indisp-fieldset select,.indisp-fieldset input,.indisp-fieldset textarea{width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:10px;font-family:inherit}.indisp-grid input:disabled{background:#f5f6f7;color:var(--muted)}.indisp-fieldset{border:1px solid var(--line);border-radius:12px;padding:14px 14px 4px;margin-bottom:14px;position:relative}.indisp-fieldset legend{position:absolute;top:-9px;left:12px;background:#fff;padding:0 6px;font-size:9px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}.indisp-desc-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}.indisp-desc-grid textarea{min-height:70px;resize:vertical}.indisp-desc-grid label small{display:block;color:var(--muted);font-weight:700;margin-top:3px}@media (max-width:520px){.indisp-desc-grid{grid-template-columns:1fr}}.indisp-radio-row{display:flex;gap:18px;margin-top:4px}.indisp-radio-row label{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:800;margin:0}.indisp-radio-row input{width:auto}.indisp-hint{font-size:8px;color:var(--muted);margin-top:-8px;margin-bottom:12px;font-weight:700}
 @media(max-width:900px){.aircraft-card-grid{grid-template-columns:1fr 1fr}}@media(max-width:600px){.aircraft-card-grid{grid-template-columns:1fr}.aircraft-base-head{align-items:flex-start;flex-direction:column}.aircraft-toolbar{justify-content:flex-start}}
 
 .aircraft-existing-list{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:#fff}
@@ -1612,6 +1612,12 @@ const chcData=(function(){
     },
     async listIndisponibilidadesHistorico(tail,dias){
       try{ return await api({action:'list',type:'indisponibilidadesHistorico',tail:tail||'',dias:dias||''}); }catch(e){ return []; }
+    },
+    /* Tradução automática BR->EN da Descrição Reportada, usando o LanguageApp
+       nativo do Google Apps Script (sem precisar de chave de API externa). */
+    async translatePtToEn(texto){
+      const r=await api({action:'translate',type:'ptEn'},{texto:String(texto||'')});
+      return (r&&r.texto)||'';
     },
     /* --- Indicadores de tendência (histórico de disponibilidade da frota) --- */
     async registrarSnapshotDisponibilidade(){
@@ -3701,7 +3707,10 @@ async function renderIndisponibilidade(){
   // Estado ATUAL vindo do Google Sheets (aba Indisponibilidades) — não mais
   // do localStorage, então aparece igual para todo mundo.
   const localState={};
-  (eventosAbertos||[]).forEach(ev=>{localState[String(ev.matricula||'').trim().toUpperCase()]={motivo:ev.motivo,obs:ev.observacao,previsao:ev.previsaoRetorno,desde:ev.indisponibilizadoEm};});
+  (eventosAbertos||[]).forEach(ev=>{localState[String(ev.matricula||'').trim().toUpperCase()]={
+    tipo:ev.tipoIndisponibilidade,obs:ev.descricaoBR,previsao:ev.previsaoRTS,desde:ev.indisponibilizadoEm,
+    ata:ev.ata,inspetor:ev.inspetor,mecanico:ev.mecanico
+  };});
   window._indispOpenByTail=localState;
   const groups={};
   aircraft.forEach(a=>(groups[a.base]||(groups[a.base]=[])).push(a));
@@ -3713,7 +3722,7 @@ async function renderIndisponibilidade(){
       const isUnavail=a.status==='Indisponível';
       const info=localState[a.tail]||{};
       const tailArg=JSON.stringify(a.tail).replace(/'/g,'&#39;');
-      const infoHtml=isUnavail?`<div class="indisp-info"><b>Motivo:</b> ${esc(info.motivo||'Não registrado nesta tela')}${info.obs?`<br>${esc(info.obs)}`:''}${info.previsao?`<br><b>Previsão de retorno:</b> ${esc(new Date(info.previsao).toLocaleString('pt-BR'))}`:''}${info.desde?`<br><small>Indisponível desde ${esc(new Date(info.desde).toLocaleString('pt-BR'))}</small>`:''}</div>`:'';
+      const infoHtml=isUnavail?`<div class="indisp-info"><b>Tipo:</b> ${esc(info.tipo||'Não registrado')}${info.obs?`<br>${esc(info.obs)}`:''}${info.ata?`<br><b>ATA:</b> ${esc(info.ata)}`:''}${info.mecanico?`<br><b>Mecânico:</b> ${esc(info.mecanico)}`:''}${info.inspetor?`<br><b>Inspetor:</b> ${esc(info.inspetor)}`:''}${info.previsao?`<br><b>Previsão de Disponibilidade (RTS):</b> ${esc(new Date(info.previsao).toLocaleString('pt-BR'))}`:''}${info.desde?`<br><small>Indisponível desde ${esc(new Date(info.desde).toLocaleString('pt-BR'))}</small>`:''}</div>`:'';
       return `<div class="aircraft-card ${isUnavail?'unavailable':''}">
         <div class="aircraft-card-head"><div class="aircraft-card-title"><div class="aircraft-mini-marker">•</div><div><b>${esc(a.tail)}</b><small>${esc(a.model)}</small></div></div>
         <span class="status-pill ${isUnavail?'':'done'}" style="${isUnavail?'background:#fff0ef;color:#d9323e':''}">${isUnavail?'INDISPONÍVEL':'DISPONÍVEL'}</span></div>
@@ -3725,53 +3734,156 @@ async function renderIndisponibilidade(){
   }).join(''):'<div class="workspace-card"><div class="empty-work">Nenhuma aeronave cadastrada.</div></div>';
   sectionWorkspace.innerHTML=workspaceHead('🛠 Indisponibilidade',`Controle de indisponibilidade da frota · ${totalIndisp} aeronave(s) indisponível(is) agora`,`<button class="tool-btn" onclick="openIndispEmailSettings()">✉ Destinatários padrão</button>`)+cardsHtml;
 }
+function toDatetimeLocalValue(d){
+  const pad=n=>String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
+}
 function openIndisponibilizarModal(tail){
   const target=(window._indispRecords||[]).find(a=>a.tail===tail);
   if(!target)return;
   const tailArg=JSON.stringify(tail).replace(/'/g,'&#39;');
-  document.body.insertAdjacentHTML('beforeend',`<div class="aircraft-modal-backdrop" id="aircraftModal"><div class="aircraft-modal">
+  const agoraLocal=toDatetimeLocalValue(new Date());
+  document.body.insertAdjacentHTML('beforeend',`<div class="aircraft-modal-backdrop" id="aircraftModal"><div class="aircraft-modal indisp-modal">
     <h3>INDISPONIBILIZAR ${esc(tail)}</h3>
     <p>${esc(target.model)}${target.base?' · Base '+esc(target.base):''}</p>
-    <label style="display:block;margin-top:10px;font-size:11px;font-weight:800">Motivo
-      <select id="indispMotivo" class="tool-btn" style="width:100%;margin-top:4px;display:block">
-        <option>Manutenção programada</option>
-        <option>Manutenção não programada / AOG</option>
-        <option>Falha técnica</option>
-        <option>Aguardando peça</option>
-        <option>Inspeção</option>
-        <option>Outro</option>
-      </select>
-    </label>
-    <label style="display:block;margin-top:10px;font-size:11px;font-weight:800">Observação / detalhes
-      <textarea id="indispObs" class="tool-btn" style="width:100%;margin-top:4px;min-height:60px;display:block"></textarea>
-    </label>
-    <label style="display:block;margin-top:10px;font-size:11px;font-weight:800">Previsão de retorno (opcional)
-      <input id="indispPrevisao" type="datetime-local" class="tool-btn" style="width:100%;margin-top:4px;display:block">
-    </label>
-    <label style="display:block;margin-top:10px;font-size:11px;font-weight:800">Enviar e-mail para
-      <textarea id="indispEmails" class="tool-btn" style="width:100%;margin-top:4px;min-height:40px;display:block" placeholder="email1@empresa.com, email2@empresa.com">${esc(indispDefaultEmails())}</textarea>
-    </label>
-    <label style="display:flex;align-items:center;gap:6px;margin-top:10px;font-size:11px"><input type="checkbox" id="indispSendEmail" checked> Abrir e-mail de aviso ao confirmar</label>
+
+    <div class="indisp-grid">
+      <label>Tipo de Indisponibilidade
+        <select id="indispTipo">
+          <option>Manutenção programada</option>
+          <option>Manutenção não programada / AOG</option>
+          <option>Falha técnica</option>
+          <option>Aguardando peça</option>
+          <option>Inspeção</option>
+          <option>Outro</option>
+        </select>
+      </label>
+      <label>Data Início e Hora
+        <input id="indispDataInicio" type="datetime-local" value="${agoraLocal}">
+      </label>
+      <label>Aeronave
+        <input type="text" value="${esc(tail)} — ${esc(target.model)}" disabled>
+      </label>
+    </div>
+
+    <fieldset class="indisp-fieldset">
+      <legend>Descrição Reportada</legend>
+      <div class="indisp-desc-grid">
+        <label>BR<textarea id="indispDescBR" placeholder="Descreva a ocorrência em português..." onblur="autoTranslateIndispDesc()"></textarea></label>
+        <label>EN<textarea id="indispDescEN" placeholder="Tradução automática ao sair do campo BR (editável)"></textarea><small id="indispTranslateStatus"></small></label>
+      </div>
+    </fieldset>
+
+    <div class="indisp-grid">
+      <label>Inspetor<input id="indispInspetor" type="text" placeholder="Nome do inspetor"></label>
+      <label>Mecânico Responsável<input id="indispMecanico" type="text" placeholder="Nome do mecânico"></label>
+      <label>ATA<input id="indispAta" type="text" placeholder="Ex.: 32-00"></label>
+      <label>Previsão de Disponibilidade (RTS)<input id="indispRTS" type="datetime-local"></label>
+      <label>Tripulação do Reporte<input id="indispTripulacao" type="text" placeholder="Nomes separados por vírgula"></label>
+    </div>
+
+    <fieldset class="indisp-fieldset">
+      <legend>Programação prevista foi cumprida?</legend>
+      <div class="indisp-radio-row">
+        <label><input type="radio" name="indispProgCumprida" value="Sim" onchange="toggleIndispProgramacao()"> Sim</label>
+        <label><input type="radio" name="indispProgCumprida" value="Não" onchange="toggleIndispProgramacao()"> Não</label>
+      </div>
+
+      <div id="indispEmailBlock" class="hidden" style="margin-top:12px">
+        <label>Enviar e-mail para
+          <textarea id="indispEmails" style="min-height:40px" placeholder="email1@empresa.com, email2@empresa.com">${esc(indispDefaultEmails())}</textarea>
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-weight:800"><input type="checkbox" id="indispSendEmail" style="width:auto" checked> Abrir e-mail de aviso ao confirmar</label>
+      </div>
+
+      <fieldset id="indispOcorrenciaBlock" class="indisp-fieldset hidden" style="margin-top:12px;margin-bottom:0">
+        <legend>Ocorrência</legend>
+        <div class="indisp-grid">
+          <label>O voo foi transferido?
+            <select id="ocorVooTransferido"><option>Não</option><option>Sim</option></select>
+          </label>
+          <label>Número do Voo<input id="ocorNumeroVoo" type="text"></label>
+          <label>Número de PAX<input id="ocorNumeroPax" type="number" min="0"></label>
+          <label>Destino<input id="ocorDestino" type="text"></label>
+          <label>Acionamento<input id="ocorAcionamento" type="time"></label>
+          <label>Corte<input id="ocorCorte" type="time"></label>
+        </div>
+      </fieldset>
+    </fieldset>
+
     <div class="aircraft-modal-actions"><button class="tool-btn" onclick="closeAircraftModal()">CANCELAR</button><button class="tool-btn primary" onclick='confirmIndisponibilizar(${tailArg})'>CONFIRMAR</button></div>
   </div></div>`);
 }
+function toggleIndispProgramacao(){
+  const v=(document.querySelector('input[name="indispProgCumprida"]:checked')||{}).value;
+  document.getElementById('indispEmailBlock').classList.toggle('hidden',v!=='Sim');
+  document.getElementById('indispOcorrenciaBlock').classList.toggle('hidden',v!=='Não');
+}
+async function autoTranslateIndispDesc(){
+  const brEl=document.getElementById('indispDescBR');
+  const enEl=document.getElementById('indispDescEN');
+  const statusEl=document.getElementById('indispTranslateStatus');
+  if(!brEl||!enEl)return;
+  const texto=brEl.value.trim();
+  if(!texto)return;
+  if(statusEl)statusEl.textContent='Traduzindo...';
+  try{
+    const traduzido=await chcData.translatePtToEn(texto);
+    if(traduzido)enEl.value=traduzido;
+    if(statusEl)statusEl.textContent='';
+  }catch(e){
+    if(statusEl)statusEl.textContent='Não foi possível traduzir automaticamente — edite manualmente.';
+  }
+}
 async function confirmIndisponibilizar(tail){
-  const motivo=document.getElementById('indispMotivo').value;
-  const obs=document.getElementById('indispObs').value.trim();
-  const previsao=document.getElementById('indispPrevisao').value;
-  const emails=document.getElementById('indispEmails').value.trim();
-  const sendEmail=document.getElementById('indispSendEmail').checked;
+  const tipoIndisponibilidade=document.getElementById('indispTipo').value;
+  const dataInicio=document.getElementById('indispDataInicio').value;
+  const descricaoBR=document.getElementById('indispDescBR').value.trim();
+  const descricaoEN=document.getElementById('indispDescEN').value.trim();
+  const inspetor=document.getElementById('indispInspetor').value.trim();
+  const mecanico=document.getElementById('indispMecanico').value.trim();
+  const ata=document.getElementById('indispAta').value.trim();
+  const previsaoRTS=document.getElementById('indispRTS').value;
+  const tripulacao=document.getElementById('indispTripulacao').value.trim();
+  const programacaoCumprida=(document.querySelector('input[name="indispProgCumprida"]:checked')||{}).value||'';
+  const emailBlockVisible=!document.getElementById('indispEmailBlock').classList.contains('hidden');
+  const emails=emailBlockVisible?document.getElementById('indispEmails').value.trim():indispDefaultEmails();
+  const sendEmail=emailBlockVisible&&document.getElementById('indispSendEmail').checked;
+  const ocorrenciaVisible=!document.getElementById('indispOcorrenciaBlock').classList.contains('hidden');
+  const ocorrencia=ocorrenciaVisible?{
+    vooTransferido:document.getElementById('ocorVooTransferido').value,
+    numeroVoo:document.getElementById('ocorNumeroVoo').value.trim(),
+    numeroPax:document.getElementById('ocorNumeroPax').value.trim(),
+    destino:document.getElementById('ocorDestino').value.trim(),
+    acionamento:document.getElementById('ocorAcionamento').value,
+    corte:document.getElementById('ocorCorte').value
+  }:{};
   closeAircraftModal();
   try{
     // Uma única chamada ao backend já grava o evento na aba Indisponibilidades
     // E atualiza o Status em Aeronaves (ver criarIndisponibilidade no Code.gs).
-    const result=await chcData.criarIndisponibilidade(tail,{motivo,observacao:obs,previsaoRetorno:previsao,emails});
+    const result=await chcData.criarIndisponibilidade(tail,{
+      tipoIndisponibilidade,dataInicio,descricaoBR,descricaoEN,inspetor,mecanico,ata,previsaoRTS,tripulacao,
+      programacaoCumprida,emails,...ocorrencia
+    });
     if(!result||result.ok===false)throw new Error(result?.error||'O Google Sheets não confirmou o registro da indisponibilidade.');
-    saveIndispDefaultEmails(emails);
+    if(emailBlockVisible)saveIndispDefaultEmails(emails);
     invalidateOperationalConfigCache('aeronaves');
     if(sendEmail&&emails){
       const subject=`Indisponibilidade de aeronave — ${tail}`;
-      const bodyLines=[`Aeronave: ${tail}`,`Motivo: ${motivo}`,obs?`Observação: ${obs}`:'',previsao?`Previsão de retorno: ${new Date(previsao).toLocaleString('pt-BR')}`:'',`Registrado em: ${new Date().toLocaleString('pt-BR')} por ${session.name||'Coordenador'}`].filter(Boolean);
+      const bodyLines=[
+        `Aeronave: ${tail}`,
+        `Tipo de Indisponibilidade: ${tipoIndisponibilidade}`,
+        dataInicio?`Início: ${new Date(dataInicio).toLocaleString('pt-BR')}`:'',
+        descricaoBR?`Descrição: ${descricaoBR}`:'',
+        inspetor?`Inspetor: ${inspetor}`:'',
+        mecanico?`Mecânico Responsável: ${mecanico}`:'',
+        ata?`ATA: ${ata}`:'',
+        previsaoRTS?`Previsão de Disponibilidade (RTS): ${new Date(previsaoRTS).toLocaleString('pt-BR')}`:'',
+        tripulacao?`Tripulação do Reporte: ${tripulacao}`:'',
+        `Programação prevista cumprida: ${programacaoCumprida||'—'}`,
+        `Registrado em: ${new Date().toLocaleString('pt-BR')} por ${session.name||'Coordenador'}`
+      ].filter(Boolean);
       window.location.href=`mailto:${emails.replace(/\s+/g,'')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join('\n'))}`;
     }
     await renderIndisponibilidade();
@@ -3786,7 +3898,7 @@ function openDisponibilizarModal(tail){
   const tailArg=JSON.stringify(tail).replace(/'/g,'&#39;');
   document.body.insertAdjacentHTML('beforeend',`<div class="aircraft-modal-backdrop" id="aircraftModal"><div class="aircraft-modal">
     <h3>DISPONIBILIZAR ${esc(tail)}</h3>
-    <p>${esc(target.model)}${info.motivo?`<br>Motivo registrado: ${esc(info.motivo)}`:''}</p>
+    <p>${esc(target.model)}${info.tipo?`<br>Tipo registrado: ${esc(info.tipo)}`:''}</p>
     <label style="display:block;margin-top:10px;font-size:11px;font-weight:800">Observação (opcional)
       <textarea id="dispObs" class="tool-btn" style="width:100%;margin-top:4px;min-height:50px;display:block" placeholder="Ex.: conserto concluído, peça substituída..."></textarea>
     </label>
