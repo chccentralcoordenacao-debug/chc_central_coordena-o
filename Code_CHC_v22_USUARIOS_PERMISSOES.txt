@@ -1229,7 +1229,12 @@ const INDISP_HEADERS=[
      depois do fimRealComunicado que já é gravado em disponibilizadoEm) —
      ver comentário completo na função indisponibilidadesSheet() logo abaixo
      sobre por que essas colunas ficam sempre no FIM da lista. */
-  'numeroRef','acaoCorretiva','inicioPrevisto','fimRealValidado'
+  'numeroRef','acaoCorretiva','inicioPrevisto','fimRealValidado',
+  /* v29: campos extras preenchidos no fechamento (Disponibilizar), pra dar
+     conta do e-mail de fechamento completo (Pane Constatada, Ordem de
+     Serviço, Referência Técnica, Local da Pane e quem informou o
+     fechamento) — sempre no fim da lista, mesmo motivo de sempre. */
+  'paneConstatada','ordemServico','referenciaTecnica','localPane','responsavelInformacao'
 ];
 function indisponibilidadesSheet(){
   const sh=sheet('Indisponibilidades');
@@ -1347,6 +1352,12 @@ function disponibilizarAeronave(tail,dados,actor){
       // fimRealValidado (v26): opcional — só grava se o coordenador marcou
       // "já validado" no modal e informou a data/hora.
       if(d.fimRealValidado)updates.fimRealValidado=String(d.fimRealValidado);
+      // v29: campos extras do fechamento completo (todos opcionais).
+      if(d.paneConstatada!==undefined)updates.paneConstatada=String(d.paneConstatada||'');
+      if(d.ordemServico!==undefined)updates.ordemServico=String(d.ordemServico||'');
+      if(d.referenciaTecnica!==undefined)updates.referenciaTecnica=String(d.referenciaTecnica||'');
+      if(d.localPane!==undefined)updates.localPane=String(d.localPane||'');
+      if(d.responsavelInformacao!==undefined)updates.responsavelInformacao=String(d.responsavelInformacao||'');
       setIndispRowFields(sh,i+1,updates);
       achou=true;
       break;
