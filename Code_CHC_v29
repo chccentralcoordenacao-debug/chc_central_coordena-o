@@ -1,4 +1,4 @@
-/* ===== CHC — Backend em Google Apps Script (v24 — Formulário completo de Indisponibilidade + tradução BR/EN) =====
+/* ===== CHC — Backend em Google Apps Script (v29 — Indisponibilidade robusta + diagnóstico) =====
 
    NOVIDADE NESTA VERSÃO (v6)
    ---------------------------
@@ -268,6 +268,10 @@ function handle(e){
 
     const action=params.action||body.action;
     const type=params.type||body.type;
+
+    /* Diagnóstico: confirma que o Web App publicado está executando esta
+       versão e que a conta do Apps Script consegue abrir a planilha. */
+    if(action==='ping')return json(pingBackend());
 
     /* Login: recebe o nome digitado na tela inicial, procura na aba
        "Usuários" (por nome, ignorando acento/caixa/espaços extras) e,
@@ -1222,224 +1226,196 @@ const INDISP_HEADERS=[
   'vooTransferido','numeroVoo','numeroPax','destino','acionamento','corte',
   'emails','status','indisponibilizadoPor','indisponibilizadoEm',
   'observacaoRetorno','disponibilizadoPor','disponibilizadoEm',
-  /* NOVIDADE v26: numeroRef (referência curta e sequencial pra citar o caso,
-     tipo #23), acaoCorretiva (separado da descrição/pane reportada),
-     inicioPrevisto (data/hora planejada de início, pode diferir do início
-     real em dataInicio) e fimRealValidado (segunda confirmação do fim real,
-     depois do fimRealComunicado que já é gravado em disponibilizadoEm) —
-     ver comentário completo na função indisponibilidadesSheet() logo abaixo
-     sobre por que essas colunas ficam sempre no FIM da lista. */
   'numeroRef','acaoCorretiva','inicioPrevisto','fimRealValidado',
-  /* v29: campos extras preenchidos no fechamento (Disponibilizar), pra dar
-     conta do e-mail de fechamento completo (Pane Constatada, Ordem de
-     Serviço, Referência Técnica, Local da Pane e quem informou o
-     fechamento) — sempre no fim da lista, mesmo motivo de sempre. */
   'paneConstatada','ordemServico','referenciaTecnica','localPane','responsavelInformacao'
 ];
+
+/* v29 — A aba pode ter sido criada por versões anteriores e sua ordem de
+   colunas não deve ser presumida. A versão anterior dizia que gravava por
+   nome, mas vários pontos ainda usavam índices fixos de INDISP_HEADERS.
+   Aqui a coluna real é localizada pelo cabeçalho normalizado; colunas novas
+   são acrescentadas no final. Isso preserva dados antigos e evita que um
+   campo digitado caia em outra coluna. */
+const INDISP_HEADER_ALIASES={
+  id:['ID'],
+  matricula:['Matrícula','Matricula','Prefixo','Aeronave'],
+  tipoIndisponibilidade:['Tipo de Indisponibilidade','Tipo'],
+  dataInicio:['Data de Início','Inicio','Início da Indisponibilidade'],
+  descricaoBR:['Descrição Reportada BR','Descrição BR','Descrição','Pane Reportada','Observação'],
+  descricaoEN:['Descrição Reportada EN','Descrição EN'],
+  inspetor:['Inspetor'],
+  mecanico:['Mecânico','Mecanico','Mecânico Responsável','Mecanico Responsavel'],
+  ata:['ATA'],
+  previsaoRTS:['Previsão de Disponibilidade','Previsao de Disponibilidade','Previsão RTS','Previsao RTS','RTS'],
+  tripulacao:['Tripulação do Reporte','Tripulacao do Reporte','Tripulação','Tripulacao'],
+  programacaoCumprida:['Programação prevista foi cumprida?','Programacao prevista foi cumprida?','Programação Cumprida','Programacao Cumprida'],
+  vooTransferido:['O voo foi transferido?','Voo Transferido'],
+  numeroVoo:['Número do Voo','Numero do Voo'],
+  numeroPax:['Número de PAX','Numero de PAX','PAX'],
+  destino:['Destino'],
+  acionamento:['Acionamento'],
+  corte:['Corte'],
+  emails:['Enviar e-mail para','Emails','E-mails'],
+  status:['Status'],
+  indisponibilizadoPor:['Indisponibilizado por','Indisponibilizado Por'],
+  indisponibilizadoEm:['Indisponibilizado em','Indisponibilizado Em'],
+  observacaoRetorno:['Observação de Retorno','Observacao de Retorno','Observação Retorno'],
+  disponibilizadoPor:['Disponibilizado por','Disponibilizado Por'],
+  disponibilizadoEm:['Disponibilizado em','Disponibilizado Em'],
+  numeroRef:['Número de Referência','Numero de Referencia','Nº Ref','Numero Ref'],
+  acaoCorretiva:['Ação Corretiva','Acao Corretiva'],
+  inicioPrevisto:['Início Previsto','Inicio Previsto'],
+  fimRealValidado:['Fim Real Validado','Fim real (validado)'],
+  paneConstatada:['Pane Constatada'],
+  ordemServico:['Ordem de Serviço','Ordem de Servico'],
+  referenciaTecnica:['Referência Técnica','Referencia Tecnica'],
+  localPane:['Local da Pane','Local Pane'],
+  responsavelInformacao:['Responsável pela Informação','Responsavel pela Informacao']
+};
+
+function normHeader(v){return normKey(v);}
 function indisponibilidadesSheet(){
   const sh=sheet('Indisponibilidades');
   if(sh.getLastRow()===0){
-    sh.appendRow(INDISP_HEADERS);
+    sh.getRange(1,1,1,INDISP_HEADERS.length).setValues([INDISP_HEADERS]);
   }else{
-    // Migração leve: se a aba já existia de uma versão anterior (sem as
-    // colunas novas do fim de INDISP_HEADERS), estende a linha de
-    // cabeçalho pra incluir as colunas que faltam — SEM mexer nas colunas
-    // já existentes, então nenhuma linha antiga é reindexada/embaralhada.
-    // Como tudo é lido/gravado por índice de INDISP_HEADERS (não pelo texto
-    // do cabeçalho), isso é só para o cabeçalho visível na planilha não
-    // ficar desatualizado; os dados funcionam mesmo sem essa migração.
     const lastCol=Math.max(sh.getLastColumn(),1);
-    const headerValues=sh.getRange(1,1,1,lastCol).getValues()[0].map(String);
-    if(headerValues.length<INDISP_HEADERS.length){
-      const faltantes=INDISP_HEADERS.slice(headerValues.length);
-      sh.getRange(1,headerValues.length+1,1,faltantes.length).setValues([faltantes]);
-    }
+    const raw=sh.getRange(1,1,1,lastCol).getValues()[0].map(v=>String(v||'').trim());
+    const normalized=new Set(raw.map(normHeader).filter(Boolean));
+    const missing=[];
+    INDISP_HEADERS.forEach(c=>{
+      const candidates=[c,...(INDISP_HEADER_ALIASES[c]||[])];
+      if(!candidates.some(x=>normalized.has(normHeader(x))))missing.push(c);
+    });
+    if(missing.length)sh.getRange(1,lastCol+1,1,missing.length).setValues([missing]);
   }
   return sh;
 }
-function indispRowToObj(row){
+function indispColumnMap(sh){
+  const lastCol=Math.max(sh.getLastColumn(),1);
+  const raw=sh.getRange(1,1,1,lastCol).getValues()[0].map(v=>String(v||'').trim());
+  const map={};
+  INDISP_HEADERS.forEach(c=>{
+    const candidates=[c,...(INDISP_HEADER_ALIASES[c]||[])].map(normHeader);
+    for(let i=0;i<raw.length;i++){
+      if(candidates.includes(normHeader(raw[i]))){map[c]=i;break;}
+    }
+  });
+  return map;
+}
+function indispRowToObj(row,sh){
+  const map=indispColumnMap(sh||indisponibilidadesSheet());
   const obj={};
-  INDISP_HEADERS.forEach((h,i)=>{obj[h]=row[i]!==undefined&&row[i]!==null?String(row[i]):'';});
+  INDISP_HEADERS.forEach(h=>{
+    const i=map[h];
+    obj[h]=(i!==undefined && row[i]!==undefined && row[i]!==null)?String(row[i]):'';
+  });
   return obj;
+}
+function setIndispRowFields(sh,rowNumber,updates){
+  const map=indispColumnMap(sh);
+  Object.keys(updates||{}).forEach(h=>{
+    const idx=map[h];
+    if(idx!==undefined)sh.getRange(rowNumber,idx+1).setValue(updates[h]);
+  });
+}
+function pingBackend(){
+  const ss=mainSS();
+  return {ok:true,backendVersion:'v29',spreadsheetName:ss.getName(),spreadsheetId:SPREADSHEET_ID,now:new Date().toISOString()};
 }
 function criarIndisponibilidade(tail,dados,actor){
   const t=String(tail||'').trim();
   if(!t)throw new Error('Informe a aeronave para registrar a indisponibilidade.');
   const d=dados||{};
   const sh=indisponibilidadesSheet();
+  const map=indispColumnMap(sh);
   const id=Utilities.getUuid();
-  // Referência curta e sequencial (nº do caso) — pega a contagem de linhas
-  // ANTES de inserir a nova (cabeçalho é a linha 1, então getLastRow() já
-  // corresponde à posição de inserção da próxima linha de dados: 1 quando
-  // só há cabeçalho, 2 depois da 1ª indisponibilidade, etc.).
-  const numeroRef=sh.getLastRow();
   const agora=new Date().toISOString();
   const quem=(actor&&(actor.nome||actor.name))||'';
-  const valoresPorCampo={
-    id:id,
-    matricula:t,
+  const numeroRef=String(Math.max(1,sh.getLastRow()));
+  const valores={
+    id:id,matricula:t,
     tipoIndisponibilidade:String(d.tipoIndisponibilidade||d.motivo||''),
     dataInicio:String(d.dataInicio||agora),
     descricaoBR:String(d.descricaoBR||d.observacao||d.obs||''),
     descricaoEN:String(d.descricaoEN||''),
-    inspetor:String(d.inspetor||''),
-    mecanico:String(d.mecanico||''),
-    ata:String(d.ata||''),
+    inspetor:String(d.inspetor||''),mecanico:String(d.mecanico||''),ata:String(d.ata||''),
     previsaoRTS:String(d.previsaoRTS||d.previsaoRetorno||d.previsao||''),
-    tripulacao:String(d.tripulacao||''),
-    programacaoCumprida:String(d.programacaoCumprida||''),
-    vooTransferido:String(d.vooTransferido||''),
-    numeroVoo:String(d.numeroVoo||''),
-    numeroPax:String(d.numeroPax||''),
-    destino:String(d.destino||''),
-    acionamento:String(d.acionamento||''),
-    corte:String(d.corte||''),
-    emails:String(d.emails||''),
-    status:'ABERTA',
-    indisponibilizadoPor:quem,
-    indisponibilizadoEm:agora,
-    observacaoRetorno:'',
-    disponibilizadoPor:'',
-    disponibilizadoEm:'',
-    numeroRef:String(numeroRef),
-    acaoCorretiva:String(d.acaoCorretiva||''),
-    inicioPrevisto:String(d.inicioPrevisto||''),
-    fimRealValidado:''
+    tripulacao:String(d.tripulacao||''),programacaoCumprida:String(d.programacaoCumprida||''),
+    vooTransferido:String(d.vooTransferido||''),numeroVoo:String(d.numeroVoo||''),numeroPax:String(d.numeroPax||''),
+    destino:String(d.destino||''),acionamento:String(d.acionamento||''),corte:String(d.corte||''),
+    emails:String(d.emails||''),status:'ABERTA',indisponibilizadoPor:quem,indisponibilizadoEm:agora,
+    observacaoRetorno:'',disponibilizadoPor:'',disponibilizadoEm:'',numeroRef:numeroRef,
+    acaoCorretiva:String(d.acaoCorretiva||''),inicioPrevisto:String(d.inicioPrevisto||''),fimRealValidado:'',
+    paneConstatada:String(d.paneConstatada||''),ordemServico:String(d.ordemServico||''),
+    referenciaTecnica:String(d.referenciaTecnica||''),localPane:String(d.localPane||''),responsavelInformacao:String(d.responsavelInformacao||'')
   };
-  sh.appendRow(INDISP_HEADERS.map(h=>valoresPorCampo[h]));
+  const row=new Array(sh.getLastColumn()).fill('');
+  Object.keys(valores).forEach(h=>{if(map[h]!==undefined)row[map[h]]=valores[h];});
+  sh.appendRow(row);
   SpreadsheetApp.flush();
-  // Mantém o Status da aeronave sincronizado, igual já era feito antes.
   updateAircraftStatusSingle(t,'INDISPONIVEL');
   return {id:id,numeroRef:numeroRef,ok:true};
 }
-/* Grava só os campos informados em updates (por NOME de coluna) numa linha
-   já existente da aba Indisponibilidades. */
-function setIndispRowFields(sh,rowNumber,updates){
-  Object.keys(updates).forEach(h=>{
-    const idx=INDISP_HEADERS.indexOf(h);
-    if(idx>=0)sh.getRange(rowNumber,idx+1).setValue(updates[h]);
-  });
-}
-/* Fecha a indisponibilidade ABERTA mais recente da aeronave (busca de trás
-   pra frente na planilha). Se não achar nenhuma aberta (ex.: aeronave que
-   ficou Indisponível antes desta aba existir), ainda assim disponibiliza a
-   aeronave normalmente — só não terá um evento de histórico para fechar. */
 function disponibilizarAeronave(tail,dados,actor){
   const t=String(tail||'').trim();
   if(!t)throw new Error('Informe a aeronave para disponibilizar.');
   const d=dados||{};
   const sh=indisponibilidadesSheet();
+  const map=indispColumnMap(sh);
   const values=sh.getDataRange().getValues();
-  const matriculaIdx=INDISP_HEADERS.indexOf('matricula');
-  const statusIdx=INDISP_HEADERS.indexOf('status');
+  const matriculaIdx=map.matricula,statusIdx=map.status;
   const quem=(actor&&(actor.nome||actor.name))||'';
   const agora=new Date().toISOString();
-  // fimRealComunicado (v26): antes o momento do fechamento era sempre
-  // "agora", sem o coordenador poder ajustar — agora, se o front-end mandar
-  // um valor (dados.fimRealComunicado), ele é usado no lugar; senão cai no
-  // comportamento antigo (agora). O valor continua gravado na coluna
-  // indisponibilizadoEm já existente — só quem preenche esse dado mudou.
   const fimComunicado=String(d.fimRealComunicado||agora);
   let achou=false;
   for(let i=values.length-1;i>=1;i--){
     if(normKey(values[i][matriculaIdx])===normKey(t)&&String(values[i][statusIdx])==='ABERTA'){
-      const updates={
-        status:'CONCLUIDA',
-        observacaoRetorno:String(d.observacao||d.obs||''),
-        disponibilizadoPor:quem,
-        disponibilizadoEm:fimComunicado
-      };
-      // fimRealValidado (v26): opcional — só grava se o coordenador marcou
-      // "já validado" no modal e informou a data/hora.
+      const updates={status:'CONCLUIDA',observacaoRetorno:String(d.observacao||d.obs||''),disponibilizadoPor:quem,disponibilizadoEm:fimComunicado};
       if(d.fimRealValidado)updates.fimRealValidado=String(d.fimRealValidado);
-      // v29: campos extras do fechamento completo (todos opcionais).
-      if(d.paneConstatada!==undefined)updates.paneConstatada=String(d.paneConstatada||'');
-      if(d.ordemServico!==undefined)updates.ordemServico=String(d.ordemServico||'');
-      if(d.referenciaTecnica!==undefined)updates.referenciaTecnica=String(d.referenciaTecnica||'');
-      if(d.localPane!==undefined)updates.localPane=String(d.localPane||'');
-      if(d.responsavelInformacao!==undefined)updates.responsavelInformacao=String(d.responsavelInformacao||'');
-      setIndispRowFields(sh,i+1,updates);
-      achou=true;
-      break;
+      ['paneConstatada','ordemServico','referenciaTecnica','localPane','responsavelInformacao','acaoCorretiva'].forEach(k=>{if(d[k]!==undefined)updates[k]=String(d[k]||'');});
+      setIndispRowFields(sh,i+1,updates);achou=true;break;
     }
   }
   SpreadsheetApp.flush();
   updateAircraftStatusSingle(t,'DISPONIVEL');
   return {ok:true,eventoFechado:achou};
 }
-/* Edita os dados da indisponibilidade ABERTA mais recente da aeronave (tipo,
-   descrição BR/EN, ATA, mecânico, inspetor, previsão RTS, tripulação) sem
-   fechá-la — ou seja, sem mexer em status/disponibilizadoPor/disponibilizadoEm
-   e sem alterar o Status da aeronave em Aeronaves. Usado pelo botão "✎
-   Atualizar indisponibilidade" da tela de Indisponibilidade (front-end v179+).
-   Só grava os campos que vierem preenchidos em dados; os demais mantêm o
-   valor já gravado na planilha. */
 function atualizarIndisponibilidadeAberta(tail,dados,actor){
   const t=String(tail||'').trim();
   if(!t)throw new Error('Informe a aeronave para atualizar a indisponibilidade.');
-  const d=dados||{};
-  const sh=indisponibilidadesSheet();
-  const values=sh.getDataRange().getValues();
-  const matriculaIdx=INDISP_HEADERS.indexOf('matricula');
-  const statusIdx=INDISP_HEADERS.indexOf('status');
+  const d=dados||{},sh=indisponibilidadesSheet(),map=indispColumnMap(sh),values=sh.getDataRange().getValues();
   let rowNumber=null;
   for(let i=values.length-1;i>=1;i--){
-    if(normKey(values[i][matriculaIdx])===normKey(t)&&String(values[i][statusIdx])==='ABERTA'){
-      rowNumber=i+1;
-      break;
-    }
+    if(normKey(values[i][map.matricula])===normKey(t)&&String(values[i][map.status])==='ABERTA'){rowNumber=i+1;break;}
   }
   if(rowNumber===null)throw new Error('Não há indisponibilidade em aberto para "'+t+'".');
-  const campos=['tipoIndisponibilidade','descricaoBR','descricaoEN','inspetor','mecanico','ata','previsaoRTS','tripulacao','acaoCorretiva','inicioPrevisto'];
-  const updates={};
-  campos.forEach(c=>{ if(d[c]!==undefined && d[c]!==null) updates[c]=String(d[c]); });
+  const campos=['tipoIndisponibilidade','descricaoBR','descricaoEN','inspetor','mecanico','ata','previsaoRTS','tripulacao','programacaoCumprida','vooTransferido','numeroVoo','numeroPax','destino','acionamento','corte','emails','acaoCorretiva','inicioPrevisto'];
+  const updates={};campos.forEach(c=>{if(d[c]!==undefined&&d[c]!==null)updates[c]=String(d[c]);});
   if(Object.keys(updates).length)setIndispRowFields(sh,rowNumber,updates);
   SpreadsheetApp.flush();
   return {ok:true,atualizado:true};
 }
-/* Devolve, por aeronave, só o evento ABERTO mais recente — é o que a tela
-   de Indisponibilidade precisa mostrar (tipo/descrição/previsão RTS atuais). */
 function listIndisponibilidadesAbertas(){
-  const sh=indisponibilidadesSheet();
-  const values=sh.getDataRange().getValues();
-  const statusIdx=INDISP_HEADERS.indexOf('status');
-  const matriculaIdx=INDISP_HEADERS.indexOf('matricula');
-  const porAeronave={};
+  const sh=indisponibilidadesSheet(),values=sh.getDataRange().getValues(),map=indispColumnMap(sh),porAeronave={};
   for(let i=1;i<values.length;i++){
-    const row=values[i];
-    if(String(row[statusIdx])!=='ABERTA')continue;
-    const tail=String(row[matriculaIdx]||'').trim();
-    if(!tail)continue;
-    // Se houver mais de uma linha ABERTA para a mesma aeronave (não deveria
-    // acontecer no uso normal), fica valendo a mais recente (linha maior).
-    porAeronave[tail]=indispRowToObj(row);
+    if(String(values[i][map.status])!=='ABERTA')continue;
+    const tail=String(values[i][map.matricula]||'').trim();if(!tail)continue;
+    porAeronave[tail]=indispRowToObj(values[i],sh);
   }
   return Object.values(porAeronave);
 }
-/* Histórico completo (para relatórios futuros), do mais recente pro mais
-   antigo. Filtro opcional por matrícula e por janela de dias (usa a data
-   de indisponibilizadoEm). */
 function listIndisponibilidadesHistorico(tail,dias){
-  const sh=indisponibilidadesSheet();
-  const values=sh.getDataRange().getValues();
-  const matriculaIdx=INDISP_HEADERS.indexOf('matricula');
-  const indispEmIdx=INDISP_HEADERS.indexOf('indisponibilizadoEm');
-  const statusIdx=INDISP_HEADERS.indexOf('status');
-  const t=tail?normKey(tail):'';
-  const limite=dias?new Date(Date.now()-Number(dias)*24*60*60*1000):null;
-  const out=[];
+  const sh=indisponibilidadesSheet(),values=sh.getDataRange().getValues(),map=indispColumnMap(sh),t=tail?normKey(tail):'';
+  const limite=dias?new Date(Date.now()-Number(dias)*24*60*60*1000):null,out=[];
   for(let i=1;i<values.length;i++){
-    const row=values[i];
-    if(!row[0])continue;
-    // Histórico = só os casos JÁ FECHADOS (CONCLUIDA). Os ainda abertos já
-    // aparecem na lista principal da aba Indisponibilidade — misturar os
-    // dois aqui duplicaria a mesma aeronave nas duas listas.
-    if(String(row[statusIdx])!=='CONCLUIDA')continue;
-    if(t&&normKey(row[matriculaIdx])!==t)continue;
-    if(limite&&row[indispEmIdx]&&new Date(row[indispEmIdx])<limite)continue;
-    out.push(indispRowToObj(row));
+    if(!values[i][map.id])continue;
+    if(String(values[i][map.status])!=='CONCLUIDA')continue;
+    if(t&&normKey(values[i][map.matricula])!==t)continue;
+    if(limite&&values[i][map.disponibilizadoEm]&&new Date(values[i][map.disponibilizadoEm])<limite)continue;
+    out.push(indispRowToObj(values[i],sh));
   }
-  out.sort((a,b)=>String(b.indisponibilizadoEm).localeCompare(String(a.indisponibilizadoEm)));
+  out.sort((a,b)=>String(b.disponibilizadoEm).localeCompare(String(a.disponibilizadoEm)));
   return out;
 }
 
