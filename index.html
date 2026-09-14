@@ -217,10 +217,14 @@
 .indisp-card-model{font-size:13px;color:var(--muted);margin-top:2px;font-weight:700}
 .indisp-card-lines{margin-top:9px;font-size:14px;line-height:1.55;color:var(--text)}
 .indisp-card-lines b{font-weight:900}
-.indisp-card-status{margin-top:9px;font-size:14px;font-weight:900;color:#d9323e}
-.indisp-card-link{display:inline-block;margin-top:7px;color:var(--orange);font-size:12.5px;font-weight:900;cursor:pointer}
-.indisp-card-btn{display:block;width:100%;margin-top:12px;padding:12px;border:0;border-radius:9px;background:var(--orange);color:#fff;font-weight:900;font-size:14px;text-align:center;cursor:pointer}
+.indisp-card-status{margin-top:9px;font-size:13px;font-weight:900;color:#d9323e}
+.indisp-card-link{display:inline-block;margin-top:7px;color:var(--orange);font-size:12px;font-weight:900;cursor:pointer}
+.indisp-card-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:11px}
+.indisp-card-btn{display:block;width:100%;margin-top:0;padding:10px 8px;border:0;border-radius:9px;background:var(--orange);color:#fff;font-weight:900;font-size:12px;text-align:center;cursor:pointer}
+.indisp-card-btn.secondary{background:#fff3ec;color:var(--orange);border:1px solid #ffd2bd}
 .indisp-card-btn:hover{opacity:.92}
+.indisp-motivo{margin-top:7px;padding:7px 8px;border-radius:8px;background:#fff8f5;border-left:3px solid var(--orange);font-size:12px;line-height:1.4}
+.indisp-duration{font-variant-numeric:tabular-nums}
 /* Histórico de indisponibilidades concluídas (v28) — mesmo padrão visual
    da lista "Histórico de abastecimentos concluídos": título, filtro de
    data e uma grade de cards com borda fina verde e uma etiqueta de status
@@ -3776,6 +3780,18 @@ function indispDiasCount(desde){
   const ms=Date.now()-d.getTime();
   return Math.max(0,Math.floor(ms/86400000));
 }
+function indispDurationLabel(desde){
+  if(!desde)return 'Tempo indisponível não informado';
+  const d=new Date(desde);
+  if(isNaN(d.getTime()))return 'Tempo indisponível não informado';
+  const totalMin=Math.floor(Math.max(0,Date.now()-d.getTime())/60000);
+  const dias=Math.floor(totalMin/1440), horas=Math.floor((totalMin%1440)/60), mins=totalMin%60;
+  if(dias>0)return `Indisponível há ${dias}d ${horas}h ${mins}min`;
+  if(horas>0)return `Indisponível há ${horas}h ${mins}min`;
+  return `Indisponível há ${mins}min`;
+}
+function updateIndispDurationLabels(){document.querySelectorAll('.indisp-duration[data-desde]').forEach(el=>{el.textContent=indispDurationLabel(el.dataset.desde);});}
+if(!window._indispDurationTimer)window._indispDurationTimer=setInterval(updateIndispDurationLabels,60000);
 /* Classifica o status do prazo (RTS) de uma indisponibilidade aberta —
    usado pelo filtro "Status" da tela (Dentro do prazo / RTS vencida / Sem
    previsão informada). */
@@ -3850,6 +3866,7 @@ async function renderIndisponibilidade(){
   if(currentSection!=='indisponibilidade')return;
   window._indispHistoricoList=historico||[];
   sectionWorkspace.innerHTML=workspaceHead('🛠 Indisponibilidade',`Controle de indisponibilidade da frota · ${totalIndisp} aeronave(s) indisponível(is) agora`,`<button class="tool-btn primary" onclick="openNovaIndisponibilidadeModal()">+ Nova Indisponibilidade</button><button class="tool-btn" onclick="openIndispEmailSettings()">✉ Destinatários padrão</button>`)+filterBarHtml+`<div id="indispCardsArea">${renderIndispCardsHtml(aircraft)}</div>`+renderIndispHistBlockHtml();
+  updateIndispDurationLabels();
 }
 /* Bloco "Histórico de indisponibilidades concluídas" — mesmo padrão da
    aba Abastecimento (título + filtro de data + grade de cards). Os dados
@@ -3923,19 +3940,20 @@ function renderIndispCardsHtml(list){
     const cards=arr.map(a=>{
       const info=localState[a.tail]||{};
       const tailArg=JSON.stringify(a.tail).replace(/'/g,'&#39;');
-      const dias=indispDiasCount(info.desde);
-      const diasLabel=dias===null?'Indisponível':(dias===0?'Indisponível há menos de 1 dia':dias===1?'Indisponível há 1 dia':`Indisponível há ${dias} dias`);
+      const duration=indispDurationLabel(info.desde);
       const refBadge=info.numeroRef?`<span class="indisp-ref-badge">#${esc(info.numeroRef)}</span>`:'';
+      const motivo=info.obs||info.tipo||'Motivo não informado';
+      const desdeAttr=info.desde?String(info.desde).replace(/"/g,'&quot;'):'';
       return `<div class="indisp-card">
         <div class="indisp-card-top"><div><b>${esc(a.tail)}</b>${refBadge}</div><span class="indisp-card-base">${esc(a.base)}</span></div>
         <div class="indisp-card-model">${esc(a.model)}</div>
-        <div class="indisp-card-lines">
-          <b>Tipo:</b> ${esc(info.tipo||'Não registrado')}
-          ${info.obs?`<br><b>Pane:</b> ${esc(info.obs)}`:''}
+        <div class="indisp-card-lines"><b>Tipo:</b> ${esc(info.tipo||'Não registrado')}</div>
+        <div class="indisp-motivo"><b>Motivo:</b> ${esc(motivo)}</div>
+        <div class="indisp-card-status indisp-duration" data-desde="${desdeAttr}">${esc(duration)}</div>
+        <div class="indisp-card-actions">
+          <button type="button" class="indisp-card-btn secondary" onclick='openAtualizarIndisponibilidadeModal(${tailArg})'>✎ Editar</button>
+          <button type="button" class="indisp-card-btn" onclick='openDisponibilizarModal(${tailArg})'>✓ Disponibilizar</button>
         </div>
-        <div class="indisp-card-status">${diasLabel}</div>
-        <span class="indisp-card-link" role="button" tabindex="0" onclick='openIndispDetalhesModal(${tailArg})' onkeydown='if(event.key==="Enter"||event.key===" "){event.preventDefault();openIndispDetalhesModal(${tailArg})}'>Ver descrição / atualizar →</span>
-        <button type="button" class="indisp-card-btn" onclick='openDisponibilizarModal(${tailArg})'>✓ Disponibilizar</button>
       </div>`;
     }).join('');
     return `<section class="aircraft-base-section"><div class="aircraft-base-head"><div class="aircraft-base-title">⌖ ${esc(base)}</div></div><div class="aircraft-base-body"><div class="indisp-card-grid">${cards}</div></div></section>`;
@@ -3960,7 +3978,7 @@ function applyIndispFilters(){
     return true;
   });
   const area=document.getElementById('indispCardsArea');
-  if(area)area.innerHTML=renderIndispCardsHtml(filtered);
+  if(area){area.innerHTML=renderIndispCardsHtml(filtered);updateIndispDurationLabels();}
 }
 /* Botão do cabeçalho: escolher uma aeronave (entre as disponíveis) e abrir
    o formulário de lançamento de indisponibilidade — já que esta aba agora
@@ -4380,7 +4398,13 @@ async function confirmDisponibilizar(tail){
   try{
     // Fecha o evento aberto na aba Indisponibilidades E atualiza o Status
     // em Aeronaves numa única chamada (ver disponibilizarAeronave no Code.gs).
-    const result=await chcData.disponibilizarAeronave(tail,{observacao:obs,acaoCorretiva,fimRealComunicado,fimRealValidado,paneConstatada,ordemServico,referenciaTecnica,localPane,responsavelInformacao});
+    let result;
+    try{result=await chcData.disponibilizarAeronave(tail,{observacao:obs,acaoCorretiva,fimRealComunicado,fimRealValidado,paneConstatada,ordemServico,referenciaTecnica,localPane,responsavelInformacao});}
+    catch(apiError){
+      const msg=String(apiError?.message||apiError||'');
+      if(/ação desconhecida.*update\/indisponibilidade|action.*unknown.*update\/indisponibilidade/i.test(msg)) throw new Error('O Google Apps Script publicado está desatualizado. Publique o Code_CHC_v18 (ou superior) para habilitar a atualização de disponibilidade.');
+      throw apiError;
+    }
     if(!result||result.ok===false)throw new Error(result?.error||'O Google Sheets não confirmou a disponibilização.');
     saveIndispDefaultEmails(emails);
     invalidateOperationalConfigCache('aeronaves');
