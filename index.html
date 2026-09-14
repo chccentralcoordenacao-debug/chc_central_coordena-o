@@ -276,6 +276,16 @@
 .peso-log-loading small{font-size:12px}
 .peso-log-spinner{width:28px;height:28px;border:3px solid #e5e9ed;border-top-color:var(--orange);border-radius:50%;animation:pesoLogSpin .7s linear infinite}
 @keyframes pesoLogSpin{to{transform:rotate(360deg)}}
+
+/* v188 — Indisponibilidade: formulário mais compacto e leitura operacional */
+.indisp-modal{font-size:13px!important}
+.indisp-modal h3{font-size:16px!important}
+.indisp-modal p{font-size:12px!important}
+.indisp-modal label{font-size:11.5px!important}
+.indisp-modal input,.indisp-modal select,.indisp-modal textarea{font-size:12px!important;padding:8px 9px!important}
+.indisp-modal .indisp-fieldset legend{font-size:10px!important}
+.indisp-modal .tool-btn{font-size:11px!important}
+.indisp-modal .indisp-field-hint{font-size:9px!important}
 </style>
 </style><style>.exit-page{position:fixed;top:18px;right:20px;z-index:20}.exit-page button{border:1px solid rgba(255,255,255,.3);background:rgba(10,20,28,.78);color:#fff;border-radius:10px;padding:9px 13px;font-size:10px;font-weight:900;cursor:pointer}.selection-helper{font-size:11px;color:#7b848c;margin:-2px 0 10px}.aircraft-grid{display:flex;flex-wrap:nowrap;gap:8px;overflow-x:auto;overflow-y:hidden;padding:4px 2px 9px;scrollbar-width:thin}.aircraft-grid::-webkit-scrollbar{height:6px}.aircraft-grid::-webkit-scrollbar-thumb{background:#d5d9dd;border-radius:20px}.aircraft{position:relative;min-width:118px;flex:0 0 auto;border:1px solid #dfe3e6;border-radius:11px;padding:9px 10px;display:flex;gap:7px;align-items:center;font-size:11px;font-weight:900;cursor:pointer;background:#fff;transition:.15s}.aircraft:hover{border-color:var(--orange);background:#fff8f3}.aircraft.selected{border-color:var(--orange);background:#fff4ec;box-shadow:0 0 0 1px #ff5a0012}.aircraft input{position:absolute;opacity:0;pointer-events:none}.aircraft .aircraft-mark{width:17px;height:17px;border:1.5px solid #bfc6cc;border-radius:5px;display:grid;place-items:center;flex:0 0 auto;background:#fff;color:transparent;font-size:11px;font-weight:1000}.aircraft.selected .aircraft-mark{border-color:var(--orange);background:var(--orange);color:#fff}.aircraft small{display:block;color:#9099a1;font-size:8px;margin-top:2px;white-space:nowrap}.aircraft-selected-label{font-size:9px;color:var(--muted);font-weight:900;text-transform:uppercase;margin:4px 0 0}.aircraft-selected-value{font-size:12px;font-weight:950;color:var(--orange);margin-top:3px}.aircraft-grid{grid-template-columns:none}@media(max-width:760px){.aircraft{min-width:112px}}</style>
 <style id="reference-layout">
@@ -1662,8 +1672,19 @@ const chcData=(function(){
     /* Tradução automática BR->EN da Descrição Reportada, usando o LanguageApp
        nativo do Google Apps Script (sem precisar de chave de API externa). */
     async translatePtToEn(texto){
-      const r=await api({action:'translate',type:'ptEn'},{texto:String(texto||'')});
-      return (r&&r.texto)||'';
+      const text=String(texto||'').trim();
+      if(!text)return '';
+      try{
+        const r=await api({action:'translate',type:'ptEn'},{texto:text});
+        if(r&&r.texto)return String(r.texto);
+      }catch(e){console.warn('Tradução pelo backend indisponível, usando fallback:',e);}
+      const u='https://api.mymemory.translated.net/get?q='+encodeURIComponent(text)+'&langpair=pt|en';
+      const res=await fetch(u,{cache:'no-store'});
+      if(!res.ok)throw new Error('Serviço de tradução indisponível');
+      const data=await res.json();
+      const translated=data&&data.responseData&&data.responseData.translatedText;
+      if(!translated)throw new Error('Tradução não retornada');
+      return translated;
     },
     /* --- Indicadores de tendência (histórico de disponibilidade da frota) --- */
     async registrarSnapshotDisponibilidade(){
@@ -3866,6 +3887,7 @@ function renderIndispHistCardsHtml(list){
         <b>Fim:</b> ${esc(fim)}
         ${ev.disponibilizadoPor?`<br><b>Disponibilizado por:</b> ${esc(ev.disponibilizadoPor)}`:''}
         ${ev.observacaoRetorno?`<br><b>Observação:</b> ${esc(ev.observacaoRetorno)}`:''}
+        ${ev.acaoCorretiva?`<br><b>Ação Corretiva:</b> ${esc(ev.acaoCorretiva)}`:''}
       </div>
       <div class="indisp-hist-badge">✓ Disponibilizado</div>
     </div>`;
@@ -3910,7 +3932,6 @@ function renderIndispCardsHtml(list){
         <div class="indisp-card-lines">
           <b>Tipo:</b> ${esc(info.tipo||'Não registrado')}
           ${info.obs?`<br><b>Pane:</b> ${esc(info.obs)}`:''}
-          ${info.acaoCorretiva?`<br><b>Ação corretiva:</b> ${esc(info.acaoCorretiva)}`:''}
         </div>
         <div class="indisp-card-status">${diasLabel}</div>
         <span class="indisp-card-link" role="button" tabindex="0" onclick='openIndispDetalhesModal(${tailArg})' onkeydown='if(event.key==="Enter"||event.key===" "){event.preventDefault();openIndispDetalhesModal(${tailArg})}'>Ver descrição / atualizar →</span>
@@ -3980,7 +4001,6 @@ function openIndispDetalhesModal(tail){
       <b>Indisponível há:</b> ${diasLabel}${info.desde?` <small>(desde ${esc(new Date(info.desde).toLocaleString('pt-BR'))})</small>`:''}
       ${info.inicioPrevisto?`<br><b>Início Previsto:</b> ${esc(new Date(info.inicioPrevisto).toLocaleString('pt-BR'))}`:''}
       ${info.obs?`<br><b>Pane Reportada:</b> ${esc(info.obs)}`:''}
-      ${info.acaoCorretiva?`<br><b>Ação Corretiva:</b> ${esc(info.acaoCorretiva)}`:''}
       ${info.ata?`<br><b>ATA:</b> ${esc(info.ata)}`:''}
       ${info.mecanico?`<br><b>Mecânico:</b> ${esc(info.mecanico)}`:''}
       ${info.inspetor?`<br><b>Inspetor:</b> ${esc(info.inspetor)}`:''}
@@ -4015,8 +4035,8 @@ function openAtualizarIndisponibilidadeModal(tail){
         <select id="upIndispTipo">${tipoOptions}</select>
       </label>
       <label>ATA<input id="upIndispAta" type="text" value="${esc(info.ata||'')}"></label>
-      <label>Início Previsto<input id="upIndispInicioPrevisto" type="datetime-local" value="${info.inicioPrevisto?esc(toDatetimeLocalValue(new Date(info.inicioPrevisto))):''}"></label>
-      <label>Previsão de Disponibilidade (RTS)<input id="upIndispRTS" type="datetime-local" value="${info.previsao?esc(toDatetimeLocalValue(new Date(info.previsao))):''}"><small class="indisp-field-hint">Clique no campo e escolha data e hora (formato dd/mm/aaaa hh:mm)</small></label>
+      <label>Previsão de Disponibilidade — Data<input id="upIndispRTSData" type="date" value="${info.previsao?esc(toDateLocalValue(new Date(info.previsao))):''}"></label>
+      <label>Previsão de Disponibilidade — Hora<input id="upIndispRTSHora" type="time" value="${info.previsao?esc(toTimeLocalValue(new Date(info.previsao))):''}"></label>
       <label>Inspetor<input id="upIndispInspetor" type="text" value="${esc(info.inspetor||'')}"></label>
       <label>Mecânico Responsável<input id="upIndispMecanico" type="text" value="${esc(info.mecanico||'')}"></label>
       <label>Piloto<input id="upIndispPiloto" type="text" value="${esc(trip.piloto)}" placeholder="Nome do piloto"></label>
@@ -4029,10 +4049,6 @@ function openAtualizarIndisponibilidadeModal(tail){
         <label>EN<textarea id="upIndispDescEN">${esc(info.obsEn||'')}</textarea><small id="upIndispTranslateStatus"></small></label>
       </div>
     </fieldset>
-    <fieldset class="indisp-fieldset">
-      <legend>Ação Corretiva</legend>
-      <label>Ação Corretiva<textarea id="upIndispAcaoCorretiva" placeholder="O que já foi feito até agora...">${esc(info.acaoCorretiva||'')}</textarea></label>
-    </fieldset>
     <div class="aircraft-modal-actions"><button class="tool-btn" onclick="closeAircraftModal()">CANCELAR</button><button class="tool-btn primary" onclick='confirmAtualizarIndisponibilidade(${tailArg})'>SALVAR ATUALIZAÇÃO</button></div>
   </div></div>`);
 }
@@ -4040,14 +4056,14 @@ async function confirmAtualizarIndisponibilidade(tail){
   const dados={
     tipoIndisponibilidade:document.getElementById('upIndispTipo').value,
     ata:document.getElementById('upIndispAta').value.trim(),
-    previsaoRTS:document.getElementById('upIndispRTS').value,
-    inicioPrevisto:document.getElementById('upIndispInicioPrevisto').value,
+    previsaoRTS:combineDateTimeLocal(document.getElementById('upIndispRTSData').value,document.getElementById('upIndispRTSHora').value),
+    inicioPrevisto:'',
     inspetor:document.getElementById('upIndispInspetor').value.trim(),
     mecanico:document.getElementById('upIndispMecanico').value.trim(),
     tripulacao:buildTripulacaoStr(document.getElementById('upIndispPiloto').value.trim(),document.getElementById('upIndispCopiloto').value.trim()),
     descricaoBR:document.getElementById('upIndispDescBR').value.trim(),
     descricaoEN:document.getElementById('upIndispDescEN').value.trim(),
-    acaoCorretiva:document.getElementById('upIndispAcaoCorretiva').value.trim(),
+    acaoCorretiva:'',
   };
   closeAircraftModal();
   try{
@@ -4058,6 +4074,9 @@ async function confirmAtualizarIndisponibilidade(tail){
     alert('Não foi possível atualizar a indisponibilidade: '+(e?.message||'erro desconhecido'));
   }
 }
+function toDateLocalValue(d){const pad=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function toTimeLocalValue(d){const pad=n=>String(n).padStart(2,'0');return pad(d.getHours())+':'+pad(d.getMinutes())}
+function combineDateTimeLocal(date,time){return date&&time?date+'T'+time:''}
 function toDatetimeLocalValue(d){
   const pad=n=>String(n).padStart(2,'0');
   return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
@@ -4109,11 +4128,11 @@ function openIndisponibilizarModal(tail){
           <option>Outro</option>
         </select>
       </label>
-      <label>Início Real
-        <input id="indispDataInicio" type="datetime-local" value="${agoraLocal}">
+      <label>Início da Indisponibilidade — Data
+        <input id="indispDataInicio" type="date" value="${agoraLocal.split('T')[0]}">
       </label>
-      <label>Início Previsto <small style="font-weight:400">(se diferente do real)</small>
-        <input id="indispInicioPrevisto" type="datetime-local">
+      <label>Início da Indisponibilidade — Hora
+        <input id="indispHoraInicio" type="time" value="${agoraLocal.split('T')[1]}">
       </label>
       <label>Aeronave
         <input type="text" value="${esc(tail)} — ${esc(target.model)}" disabled>
@@ -4128,16 +4147,12 @@ function openIndisponibilizarModal(tail){
       </div>
     </fieldset>
 
-    <fieldset class="indisp-fieldset">
-      <legend>Ação Corretiva</legend>
-      <label>Ação Corretiva<textarea id="indispAcaoCorretiva" placeholder="O que já foi feito até agora (opcional)..."></textarea></label>
-    </fieldset>
-
     <div class="indisp-grid">
       <label>Inspetor<input id="indispInspetor" type="text" placeholder="Nome do inspetor"></label>
       <label>Mecânico Responsável<input id="indispMecanico" type="text" placeholder="Nome do mecânico"></label>
       <label>ATA<input id="indispAta" type="text" placeholder="Ex.: 32-00"></label>
-      <label>Previsão de Disponibilidade (RTS)<input id="indispRTS" type="datetime-local"><small class="indisp-field-hint">Clique no campo e escolha data e hora (formato dd/mm/aaaa hh:mm)</small></label>
+      <label>Previsão de Disponibilidade — Data<input id="indispRTSData" type="date"></label>
+      <label>Previsão de Disponibilidade — Hora<input id="indispRTSHora" type="time"></label>
       <label>Piloto<input id="indispPiloto" type="text" placeholder="Nome do piloto"></label>
       <label>Copiloto<input id="indispCopiloto" type="text" placeholder="Nome do copiloto"></label>
     </div>
@@ -4200,15 +4215,15 @@ async function autoTranslateIndispDesc(scope){
 }
 async function confirmIndisponibilizar(tail){
   const tipoIndisponibilidade=document.getElementById('indispTipo').value;
-  const dataInicio=document.getElementById('indispDataInicio').value;
+  const dataInicio=combineDateTimeLocal(document.getElementById('indispDataInicio').value,document.getElementById('indispHoraInicio').value);
   const descricaoBR=document.getElementById('indispDescBR').value.trim();
   const descricaoEN=document.getElementById('indispDescEN').value.trim();
   const inspetor=document.getElementById('indispInspetor').value.trim();
   const mecanico=document.getElementById('indispMecanico').value.trim();
   const ata=document.getElementById('indispAta').value.trim();
-  const previsaoRTS=document.getElementById('indispRTS').value;
-  const inicioPrevisto=document.getElementById('indispInicioPrevisto').value;
-  const acaoCorretiva=document.getElementById('indispAcaoCorretiva').value.trim();
+  const previsaoRTS=combineDateTimeLocal(document.getElementById('indispRTSData').value,document.getElementById('indispRTSHora').value);
+  const inicioPrevisto='';
+  const acaoCorretiva='';
   const tripulacao=buildTripulacaoStr(document.getElementById('indispPiloto').value.trim(),document.getElementById('indispCopiloto').value.trim());
   const programacaoCumprida=(document.querySelector('input[name="indispProgCumprida"]:checked')||{}).value||'';
   const emailBlockVisible=!document.getElementById('indispEmailBlock').classList.contains('hidden');
@@ -4294,6 +4309,9 @@ function openDisponibilizarModal(tail){
     <label style="display:block;margin-top:10px;${f14};font-weight:800">Observação (opcional)
       <textarea id="dispObs" class="tool-btn" style="width:100%;margin-top:4px;min-height:50px;display:block;${f14}" placeholder="Ex.: conserto concluído, peça substituída..."></textarea>
     </label>
+    <label style="display:block;margin-top:10px;${f14};font-weight:800">Ação Corretiva
+      <textarea id="dispAcaoCorretiva" class="tool-btn" style="width:100%;margin-top:4px;min-height:55px;display:block;${f14}" placeholder="Descreva a ação corretiva realizada..."></textarea>
+    </label>
     <label style="display:flex;align-items:center;gap:6px;margin-top:10px;${f14}"><input type="checkbox" id="dispValidado" onchange="document.getElementById('dispFimValidadoBlock').classList.toggle('hidden',!this.checked)"> Fim real já validado</label>
     <div id="dispFimValidadoBlock" class="hidden">
       <label style="display:block;margin-top:8px;${f14};font-weight:800">Fim Real (validado)
@@ -4324,6 +4342,7 @@ async function confirmDisponibilizar(tail){
   const referenciaTecnica=document.getElementById('dispReferenciaTecnica').value.trim();
   const localPane=document.getElementById('dispLocalPane').value.trim();
   const obs=document.getElementById('dispObs').value.trim();
+  const acaoCorretiva=document.getElementById('dispAcaoCorretiva').value.trim();
   const validado=document.getElementById('dispValidado').checked;
   const fimRealValidado=validado?document.getElementById('dispFimValidado').value:'';
   const emails=document.getElementById('dispEmails').value.trim();
@@ -4349,7 +4368,7 @@ async function confirmDisponibilizar(tail){
       indispSubtipoFromTipo(info.tipo)?`Subtipo de Indisponibilidade: ${indispSubtipoFromTipo(info.tipo)}`:'',
       info.obs?`Pane Reportada: ${info.obs}`:'',
       paneConstatada?`Pane Constatada: ${paneConstatada}`:'',
-      (info.acaoCorretiva||obs)?`Ação Corretiva: ${info.acaoCorretiva||obs}`:'',
+      acaoCorretiva?`Ação Corretiva: ${acaoCorretiva}`:'',
       ordemServico?`Ordem de serviço: ${ordemServico}`:'',
       referenciaTecnica?`Referência Técnica: ${referenciaTecnica}`:'',
       localPane?`Local Pane: ${localPane}`:'',
@@ -4361,7 +4380,7 @@ async function confirmDisponibilizar(tail){
   try{
     // Fecha o evento aberto na aba Indisponibilidades E atualiza o Status
     // em Aeronaves numa única chamada (ver disponibilizarAeronave no Code.gs).
-    const result=await chcData.disponibilizarAeronave(tail,{observacao:obs,fimRealComunicado,fimRealValidado,paneConstatada,ordemServico,referenciaTecnica,localPane,responsavelInformacao});
+    const result=await chcData.disponibilizarAeronave(tail,{observacao:obs,acaoCorretiva,fimRealComunicado,fimRealValidado,paneConstatada,ordemServico,referenciaTecnica,localPane,responsavelInformacao});
     if(!result||result.ok===false)throw new Error(result?.error||'O Google Sheets não confirmou a disponibilização.');
     saveIndispDefaultEmails(emails);
     invalidateOperationalConfigCache('aeronaves');
