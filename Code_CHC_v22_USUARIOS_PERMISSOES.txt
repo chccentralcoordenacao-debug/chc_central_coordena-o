@@ -1413,12 +1413,17 @@ function listIndisponibilidadesHistorico(tail,dias){
   const values=sh.getDataRange().getValues();
   const matriculaIdx=INDISP_HEADERS.indexOf('matricula');
   const indispEmIdx=INDISP_HEADERS.indexOf('indisponibilizadoEm');
+  const statusIdx=INDISP_HEADERS.indexOf('status');
   const t=tail?normKey(tail):'';
   const limite=dias?new Date(Date.now()-Number(dias)*24*60*60*1000):null;
   const out=[];
   for(let i=1;i<values.length;i++){
     const row=values[i];
     if(!row[0])continue;
+    // Histórico = só os casos JÁ FECHADOS (CONCLUIDA). Os ainda abertos já
+    // aparecem na lista principal da aba Indisponibilidade — misturar os
+    // dois aqui duplicaria a mesma aeronave nas duas listas.
+    if(String(row[statusIdx])!=='CONCLUIDA')continue;
     if(t&&normKey(row[matriculaIdx])!==t)continue;
     if(limite&&row[indispEmIdx]&&new Date(row[indispEmIdx])<limite)continue;
     out.push(indispRowToObj(row));
