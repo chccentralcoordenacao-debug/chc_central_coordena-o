@@ -10,7 +10,7 @@
 6. Inclusão dinâmica de múltiplos destinos
 7. Correções de layout mobile para Novo Voo
 -->
-<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#171d24"><title>CHC — Central de Coordenação v155</title><style>
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#171d24"><title>CHC — Central de Coordenação v190</title><style>
 :root{--orange:#ff5a00;--ink:#171d24;--bg:#f5f6f7;--line:#e4e8eb;--muted:#78818b;--text:#1d242b;--green:#1eb36b;--shadow:0 12px 32px rgba(23,29,36,.07)}*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--text)}button,input,select{font:inherit}button{cursor:pointer;border:0}.hidden{display:none!important}.logo{display:block;object-fit:contain}
 /* login */.login{min-height:100vh;background:linear-gradient(135deg,#171d24,#242c34 60%,#171d24);display:grid;grid-template-columns:360px 1fr}.login-side{display:flex;flex-direction:column;justify-content:center;padding:40px;border-right:1px solid #ffffff12;color:#fff}.login-side .logo{width:190px;margin:0 auto 28px}.login-side h1{text-align:center;font-size:17px;margin:0 0 6px}.login-side p{text-align:center;color:#aab2ba;font-size:12px;margin:0}.login-card{width:min(560px,calc(100vw - 40px));margin:auto;background:#fff;border-radius:24px;padding:30px;box-shadow:0 30px 80px #00000045}.steps{display:flex;align-items:center;gap:8px;margin-bottom:26px}.step{display:flex;align-items:center;gap:8px;color:#a0a8b0;font-size:10px;font-weight:900;white-space:nowrap}.step .num{width:28px;height:28px;border-radius:50%;background:#edf0f2;display:grid;place-items:center}.step.active,.step.done{color:var(--ink)}.step.active .num,.step.done .num{background:var(--orange);color:#fff}.step.done .num{font-size:0}.step.done .num:after{content:"✓";font-size:14px}.step-line{height:1px;background:#e0e3e6;flex:1}.login-card h2{font-size:20px;margin:0 0 7px}.intro{font-size:12px;color:var(--muted);margin:0 0 20px}.field{margin-bottom:14px}.field label{display:block;font-size:11px;font-weight:900;margin-bottom:7px;color:#4e5963;text-transform:uppercase}input,select{width:100%;border:1px solid #d9dee2;background:#fff;border-radius:11px;padding:13px 14px;outline:none}input:focus,select:focus{border-color:var(--orange);box-shadow:0 0 0 3px #ff5a001a}.base-list{display:grid;gap:8px}.base-option{border:1px solid #dfe3e6;border-radius:11px;padding:12px 13px;display:flex;justify-content:space-between;font-size:13px;font-weight:800;cursor:pointer}.base-option.selected,.base-option:hover{border-color:var(--orange);background:#fff8f3}.radio{width:17px;height:17px;border:1.5px solid #bfc6cc;border-radius:50%;position:relative}.selected .radio{border-color:var(--orange)}.selected .radio:after{content:"";position:absolute;inset:3px;background:var(--orange);border-radius:50%}.aircraft-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.aircraft{position:relative;border:1px solid #dfe3e6;background:#fff;border-radius:12px;padding:12px 11px;display:flex;gap:9px;align-items:center;font-size:12px;font-weight:900;cursor:pointer;transition:.15s;min-height:58px}.aircraft:hover{border-color:#ffc19e;transform:translateY(-1px)}.aircraft.selected{border-color:var(--orange);background:#fff7f2;box-shadow:0 0 0 2px #ff6a0015}.aircraft input{width:16px;height:16px;margin:0;accent-color:var(--orange);flex:0 0 auto}.aircraft-mark{display:none;color:var(--orange);font-size:14px;font-weight:950}.aircraft.selected .aircraft-mark{display:block}.aircraft small{display:block;color:#9099a1;font-size:9px;margin-top:2px;font-weight:700}@media(max-width:520px){.aircraft-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.aircraft{padding:10px 8px;font-size:11px}}.summary{background:#fff8f3;border:1px solid #ffd8c1;border-radius:12px;padding:14px;margin-top:12px}.tag{display:inline-block;background:#fff;border:1px solid #ffd0b6;color:#dc4e00;border-radius:8px;padding:5px 8px;font-size:10px;font-weight:900;margin:4px 4px 0 0}.actions{display:flex;justify-content:flex-end;gap:9px;margin-top:20px}.btn{padding:12px 18px;border-radius:10px;font-size:11px;font-weight:900}.primary{background:linear-gradient(135deg,var(--orange),#ff6a00);color:#fff;box-shadow:0 9px 18px #ff5a0033}.secondary{background:#f0f2f4;color:#303a43}.login-note{font-size:10px;color:#8a929a;text-align:center;margin-top:13px}
 /* app */.app{min-height:100vh;display:grid;grid-template-columns:226px 1fr}.sidebar{background:linear-gradient(180deg,#1b222a,#171d24);color:#fff;padding:26px 14px;display:flex;flex-direction:column;height:100vh;position:sticky;top:0}.side-logo{width:105px;margin:0 auto 34px;filter:brightness(0) invert(1)}.nav{display:grid;gap:5px}.nav button{background:transparent;color:#d7dce0;text-align:left;padding:12px 13px;border-radius:9px;font-size:12px;font-weight:800;display:flex;gap:11px;align-items:center}.nav button.active,.nav button:hover{background:var(--orange);color:#fff}.nav-fuel-btn{position:relative}.fuel-badge{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:#e03131;color:#fff;font-size:9px;font-weight:900;border-radius:10px;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 4px;animation:fuelBadgePulse 1.4s infinite}.fuel-cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}.fuel-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px}.fuel-card-urgent{border-color:#e03131;animation:fuelCardBlink 1.6s infinite}.fuel-card-done{border:1px solid #2f9e44;animation:none;opacity:.92}.fuel-card-wait-done{color:#2f9e44}.fuel-card-btn-done{background:#2f9e44!important;border-color:#2f9e44!important;color:#fff!important;opacity:1!important;cursor:default}.fuel-history-date{border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:11px;font-weight:800;color:var(--text);background:#fff}.fuel-card-top{display:flex;justify-content:space-between;align-items:center}.fuel-card-reg{font-size:15px;font-weight:950}.fuel-card-base{font-size:9px;font-weight:900;color:var(--muted);text-transform:uppercase}.fuel-card-mid{font-size:11px}.fuel-card-info{font-size:10px;color:var(--muted)}.fuel-card-wait{font-size:9px;font-weight:900;color:#c94a19}.fuel-card-btn{margin-top:4px;width:100%;text-align:center}.fuel-card-flash{animation:fuelCardFocus 1.1s ease 2}.fuel-card{cursor:pointer}.fuel-card:hover{box-shadow:0 8px 22px rgba(20,25,30,.13)}
@@ -1403,6 +1403,7 @@ input::placeholder{color:#9AA0A6}
 .user-permission-row{min-height:38px;padding:8px 10px;border-radius:10px}
 .user-permission-row span{font-size:15px;font-weight:800;line-height:1.2}.user-permission-row input{width:18px;height:18px;accent-color:#ff5a2f}.user-inherit-toggle{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:var(--muted);white-space:nowrap}.user-inherit-toggle input{width:15px;height:15px;accent-color:#ff5a2f}
 </style>
+<style id="indisp-history-v190">.indisp-history-subtitle{margin-top:9px;padding-top:7px;border-top:1px solid #edf0f2;font-size:9px;font-weight:950;color:var(--orange);text-transform:uppercase}.indisp-hist-card-lines>div{margin-top:3px;line-height:1.35}.indisp-hist-card-lines>div:first-child{margin-top:0}.indisp-card-btn:disabled{opacity:.55;cursor:wait}</style>
 </head><body><div class="login" id="loginScreen">
   <button class="login-exit" type="button" onclick="voltarTelaInicial()">↪ <span>SAIR</span></button>
   <div class="login-bg-glow"></div>
@@ -1666,6 +1667,9 @@ const chcData=(function(){
     // 'updateOpen' na aba Indisponibilidades (mesma linha aberta do tail).
     async atualizarIndisponibilidade(tail,dados){
       return await api({action:'updateOpen',type:'indisponibilidade'},{tail:String(tail||''),...dados,actor:{nome:session.name,funcao:session.funcao||session.perfil}});
+    },
+    async pingBackend(){
+      return await api({action:'ping'});
     },
     async listIndisponibilidadesAbertas(){
       try{ return await api({action:'list',type:'indisponibilidadesAbertas'}); }catch(e){ console.warn('Falha ao buscar indisponibilidades abertas:',e); return []; }
@@ -3840,7 +3844,7 @@ async function renderIndisponibilidade(){
   // do localStorage, então aparece igual para todo mundo.
   const localState={};
   (eventosAbertos||[]).forEach(ev=>{localState[String(ev.matricula||'').trim().toUpperCase()]={
-    tipo:ev.tipoIndisponibilidade,obs:ev.descricaoBR,obsEn:ev.descricaoEN,previsao:ev.previsaoRTS,desde:ev.indisponibilizadoEm,
+    tipo:ev.tipoIndisponibilidade,obs:ev.descricaoBR,obsEn:ev.descricaoEN,previsao:ev.previsaoRTS,desde:ev.indisponibilizadoEm||ev.dataInicio||ev.criadoEm||'',
     ata:ev.ata,inspetor:ev.inspetor,mecanico:ev.mecanico,tripulacao:ev.tripulacao,
     numeroRef:ev.numeroRef,acaoCorretiva:ev.acaoCorretiva,inicioPrevisto:ev.inicioPrevisto
   };});
@@ -3865,7 +3869,7 @@ async function renderIndisponibilidade(){
   </div>`;
   if(currentSection!=='indisponibilidade')return;
   window._indispHistoricoList=historico||[];
-  sectionWorkspace.innerHTML=workspaceHead('🛠 Indisponibilidade',`Controle de indisponibilidade da frota · ${totalIndisp} aeronave(s) indisponível(is) agora`,`<button class="tool-btn primary" onclick="openNovaIndisponibilidadeModal()">+ Nova Indisponibilidade</button><button class="tool-btn" onclick="openIndispEmailSettings()">✉ Destinatários padrão</button>`)+filterBarHtml+`<div id="indispCardsArea">${renderIndispCardsHtml(aircraft)}</div>`+renderIndispHistBlockHtml();
+  sectionWorkspace.innerHTML=workspaceHead('🛠 Indisponibilidade',`Controle de indisponibilidade da frota · ${totalIndisp} aeronave(s) indisponível(is) agora`,`<button class="tool-btn primary" onclick="openNovaIndisponibilidadeModal()">+ Nova Indisponibilidade</button><button class="tool-btn" onclick="testarConexaoGoogleSheets()">🔎 Testar conexão</button><button class="tool-btn" onclick="openIndispEmailSettings()">✉ Destinatários padrão</button>`)+filterBarHtml+`<div id="indispCardsArea">${renderIndispCardsHtml(aircraft)}</div>`+renderIndispHistBlockHtml();
   updateIndispDurationLabels();
 }
 /* Bloco "Histórico de indisponibilidades concluídas" — mesmo padrão da
@@ -3889,27 +3893,51 @@ function renderIndispHistBlockHtml(){
 function renderIndispHistCardsHtml(list){
   if(!list.length)return '<div class="workspace-card"><div class="empty-work">Nenhuma indisponibilidade concluída encontrada.</div></div>';
   const byTail=window._indispAllAircraftByTail||{};
+  const fmt=(v)=>{if(!v)return ''; const d=new Date(v); return isNaN(d.getTime())?String(v):d.toLocaleString('pt-BR');};
+  const line=(label,v)=>v!==undefined&&v!==null&&String(v).trim()!==''?`<div><b>${label}:</b> ${esc(String(v))}</div>`:'';
   const cards=list.map(ev=>{
     const tail=String(ev.matricula||'').trim().toUpperCase();
     const a=byTail[tail]||{model:'Aeronave CHC',base:'Sem base'};
-    const inicio=ev.dataInicio?new Date(ev.dataInicio).toLocaleString('pt-BR'):'—';
-    const fim=ev.disponibilizadoEm?new Date(ev.disponibilizadoEm).toLocaleString('pt-BR'):'—';
+    const inicio=fmt(ev.dataInicio);
+    const fim=fmt(ev.disponibilizadoEm);
     const refBadge=ev.numeroRef?`<span class="indisp-ref-badge">#${esc(ev.numeroRef)}</span>`:'';
+    const descricao=ev.descricaoBR||'';
+    const ocorrencia=[
+      line('Voo transferido',ev.vooTransferido),line('Nº do voo',ev.numeroVoo),line('PAX',ev.numeroPax),
+      line('Destino',ev.destino),line('Acionamento',ev.acionamento),line('Corte',ev.corte)
+    ].join('');
+    const fechamento=[
+      line('Pane constatada',ev.paneConstatada),line('Ordem de serviço',ev.ordemServico),line('Referência técnica',ev.referenciaTecnica),
+      line('Local da pane',ev.localPane),line('Responsável pela informação',ev.responsavelInformacao),line('Observação de retorno',ev.observacaoRetorno),
+      line('Ação corretiva',ev.acaoCorretiva)
+    ].join('');
+    const detalhes=[
+      line('Tipo',ev.tipoIndisponibilidade||'Não registrado'),
+      line('Início',inicio),line('Fim',fim),line('Pane reportada',descricao),line('Descrição EN',ev.descricaoEN),
+      line('ATA',ev.ata),line('Inspetor',ev.inspetor),line('Mecânico',ev.mecanico),line('Tripulação',ev.tripulacao),
+      line('Previsão de disponibilidade (RTS)',fmt(ev.previsaoRTS)),line('Programação prevista cumprida',ev.programacaoCumprida),
+      line('Indisponibilizado por',ev.indisponibilizadoPor),line('Disponibilizado por',ev.disponibilizadoPor),
+      ocorrencia?`<div class="indisp-history-subtitle">Ocorrência</div>${ocorrencia}`:'',
+      fechamento?`<div class="indisp-history-subtitle">Fechamento</div>${fechamento}`:''
+    ].join('');
     return `<div class="indisp-hist-card">
       <div class="indisp-hist-card-top"><div><b>${esc(tail)}</b>${refBadge}</div><span class="indisp-hist-card-base">${esc(a.base)}</span></div>
       <div class="indisp-card-model">${esc(a.model)}</div>
-      <div class="indisp-hist-card-lines">
-        <b>Tipo:</b> ${esc(ev.tipoIndisponibilidade||'Não registrado')}<br>
-        <b>Início:</b> ${esc(inicio)}<br>
-        <b>Fim:</b> ${esc(fim)}
-        ${ev.disponibilizadoPor?`<br><b>Disponibilizado por:</b> ${esc(ev.disponibilizadoPor)}`:''}
-        ${ev.observacaoRetorno?`<br><b>Observação:</b> ${esc(ev.observacaoRetorno)}`:''}
-        ${ev.acaoCorretiva?`<br><b>Ação Corretiva:</b> ${esc(ev.acaoCorretiva)}`:''}
-      </div>
+      <div class="indisp-hist-card-lines">${detalhes}</div>
       <div class="indisp-hist-badge">✓ Disponibilizado</div>
     </div>`;
   }).join('');
   return `<div class="indisp-card-grid">${cards}</div>`;
+}
+/* Teste explícito de comunicação: confirma URL, token, versão publicada e acesso à planilha. */
+async function testarConexaoGoogleSheets(){
+  try{
+    const r=await chcData.pingBackend();
+    if(!r||r.ok!==true)throw new Error(r?.error||'Resposta inválida.');
+    alert(`🟢 CONEXÃO OK\n\nBackend: ${r.backendVersion||'desconhecido'}\nPlanilha: ${r.spreadsheetName||'—'}\n\nO Web App publicado está conseguindo acessar o Google Sheets.`);
+  }catch(e){
+    alert(`🔴 CONEXÃO NÃO CONFIRMADA\n\n${e?.message||e}\n\nSe aparecer “ação desconhecida: ping”, a implantação ainda está usando uma versão antiga do Code.gs.`);
+  }
 }
 /* Filtra o histórico por uma data (compara com o dia do Fim/disponibilizadoEm). */
 function applyIndispHistFilter(){
@@ -4083,10 +4111,12 @@ async function confirmAtualizarIndisponibilidade(tail){
     descricaoEN:document.getElementById('upIndispDescEN').value.trim(),
     acaoCorretiva:'',
   };
-  closeAircraftModal();
+  const saveBtn=document.querySelector('#aircraftModal .tool-btn.primary');
+  if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='SALVANDO...';}
   try{
     const result=await chcData.atualizarIndisponibilidade(tail,dados);
     if(!result||result.ok===false)throw new Error(result?.error||'O Google Sheets não confirmou a atualização.');
+    closeAircraftModal();
     await renderIndisponibilidade();
   }catch(e){
     alert('Não foi possível atualizar a indisponibilidade: '+(e?.message||'erro desconhecido'));
