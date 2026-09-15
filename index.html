@@ -228,7 +228,7 @@
 /* Botões do card em formato pílula, lado a lado (v30) — Editar (contorno)
    + Disponibilizar (preenchido), mais finos que o botão único anterior. */
 .indisp-card-actions{display:flex;gap:8px;margin-top:12px}
-.indisp-card-btn-pill{flex:1;padding:5px 8px;border-radius:999px;font-weight:900;font-size:11px;text-align:center;cursor:pointer;box-sizing:border-box;line-height:1.6}
+.indisp-card-btn-pill{flex:1;padding:4px 8px;border-radius:9px;font-weight:900;font-size:11px;text-align:center;cursor:pointer;box-sizing:border-box;line-height:1.3}
 .indisp-card-btn-pill.ghost{border:1.5px solid var(--line);background:#fff;color:var(--ink)}
 .indisp-card-btn-pill.primary{border:0;background:var(--orange);color:#fff}
 .indisp-card-btn-pill.secondary{border:1.5px solid var(--orange);background:#fff;color:var(--orange)}
@@ -3889,7 +3889,9 @@ function renderIndispHistCardsHtml(list){
     const inicio=ev.dataInicio?new Date(ev.dataInicio).toLocaleString('pt-BR'):'—';
     const fim=ev.disponibilizadoEm?new Date(ev.disponibilizadoEm).toLocaleString('pt-BR'):'—';
     const refBadge=ev.numeroRef?`<span class="indisp-ref-badge">#${esc(ev.numeroRef)}</span>`:'';
-    return `<div class="indisp-hist-card">
+    const evJson=JSON.stringify(ev).replace(/'/g,'&#39;');
+    const tailArg=JSON.stringify(tail).replace(/'/g,'&#39;');
+    return `<div class="indisp-hist-card" style="cursor:pointer" onclick='openIndispHistDetalhesModal(${tailArg},${evJson})'>
       <div class="indisp-hist-card-top"><div><b>${esc(tail)}</b>${refBadge}</div><span class="indisp-hist-card-base">${esc(a.base)}</span></div>
       <div class="indisp-card-model">${esc(a.model)}</div>
       <div class="indisp-hist-card-lines">
@@ -3936,7 +3938,7 @@ function renderIndispCardsHtml(list){
       const dias=indispDiasCount(info.desde);
       const diasLabel=dias===null?'Indisponível':(dias===0?'Indisponível há menos de 1 dia':dias===1?'Indisponível há 1 dia':`Indisponível há ${dias} dias`);
       const refBadge=info.numeroRef?`<span class="indisp-ref-badge">#${esc(info.numeroRef)}</span>`:'';
-      return `<div class="indisp-card">
+      return `<div class="indisp-card" style="cursor:pointer" onclick='openIndispDetalhesModal(${tailArg})'>
         <div class="indisp-card-top"><div><b>${esc(a.tail)}</b>${refBadge}</div><span class="indisp-card-base">${esc(a.base)}</span></div>
         <div class="indisp-card-model">${esc(a.model)}</div>
         <div class="indisp-card-lines">
@@ -3945,9 +3947,8 @@ function renderIndispCardsHtml(list){
         </div>
         <div class="indisp-card-status">${diasLabel}</div>
         <div class="indisp-card-actions">
-          <button type="button" class="indisp-card-btn-pill ghost" onclick='openAtualizarIndisponibilidadeModal(${tailArg})'>✎ Editar</button>
-          <button type="button" class="indisp-card-btn-pill primary" onclick='openDisponibilizarModal(${tailArg})'>✓ Disponibilizar</button>
-          <button type="button" class="indisp-card-btn-pill ghost" onclick='openIndispDetalhesModal(${tailArg})'>👁 Ver</button>
+          <button type="button" class="indisp-card-btn-pill ghost" onclick='event.stopPropagation();openAtualizarIndisponibilidadeModal(${tailArg})'>✎ Editar</button>
+          <button type="button" class="indisp-card-btn-pill primary" onclick='event.stopPropagation();openDisponibilizarModal(${tailArg})'>✓ Disponibilizar</button>
         </div>
       </div>`;
     }).join('');
@@ -4021,6 +4022,34 @@ function openIndispDetalhesModal(tail){
       ${info.previsao?`<br><b>Fim Previsto (RTS):</b> ${esc(new Date(info.previsao).toLocaleString('pt-BR'))}`:''}
     </div>
     <div class="aircraft-modal-actions"><button class="tool-btn" onclick="closeAircraftModal()">FECHAR</button><button class="tool-btn" onclick='closeAircraftModal();openAtualizarIndisponibilidadeModal(${tailArg})'>✎ Atualizar indisponibilidade</button><button class="tool-btn primary" onclick='closeAircraftModal();openDisponibilizarModal(${tailArg})'>✅ Disponibilizar</button></div>
+  </div></div>`);
+}
+/* Detalhes de uma indisponibilidade JÁ CONCLUÍDA (histórico) — não usa
+   window._indispOpenByTail (que só tem os casos em aberto), monta o
+   modal direto a partir do próprio evento do histórico (ev), que já traz
+   todos os campos registrados no fechamento. */
+function openIndispHistDetalhesModal(tail,ev){
+  const byTail=window._indispAllAircraftByTail||{};
+  const a=byTail[tail]||{model:'Aeronave CHC',base:'Sem base'};
+  const inicio=ev.dataInicio?new Date(ev.dataInicio).toLocaleString('pt-BR'):'—';
+  const fim=ev.disponibilizadoEm?new Date(ev.disponibilizadoEm).toLocaleString('pt-BR'):'—';
+  document.body.insertAdjacentHTML('beforeend',`<div class="aircraft-modal-backdrop" id="aircraftModal"><div class="aircraft-modal indisp-modal">
+    <h3>INDISPONIBILIDADE — ${esc(tail)}${ev.numeroRef?`<span class="indisp-ref-badge">#${esc(ev.numeroRef)}</span>`:''}</h3>
+    <p>${esc(a.model)}${a.base?' · Base '+esc(a.base):''}</p>
+    <div class="indisp-info" style="margin-top:8px">
+      <b>Tipo:</b> ${esc(ev.tipoIndisponibilidade||'Não registrado')}<br>
+      <b>Início:</b> ${esc(inicio)}<br>
+      <b>Fim:</b> ${esc(fim)}
+      ${ev.descricaoBR?`<br><b>Pane Reportada:</b> ${esc(ev.descricaoBR)}`:''}
+      ${ev.acaoCorretiva?`<br><b>Ação Corretiva:</b> ${esc(ev.acaoCorretiva)}`:''}
+      ${ev.ata?`<br><b>ATA:</b> ${esc(ev.ata)}`:''}
+      ${ev.mecanico?`<br><b>Mecânico:</b> ${esc(ev.mecanico)}`:''}
+      ${ev.inspetor?`<br><b>Inspetor:</b> ${esc(ev.inspetor)}`:''}
+      ${ev.tripulacao?`<br><b>Tripulação do Reporte:</b> ${esc(ev.tripulacao)}`:''}
+      ${ev.disponibilizadoPor?`<br><b>Disponibilizado por:</b> ${esc(ev.disponibilizadoPor)}`:''}
+      ${ev.observacaoRetorno?`<br><b>Observação:</b> ${esc(ev.observacaoRetorno)}`:''}
+    </div>
+    <div class="aircraft-modal-actions"><button class="tool-btn" onclick="closeAircraftModal()">FECHAR</button></div>
   </div></div>`);
 }
 /* Edita os dados da indisponibilidade em aberto (tipo, descrição, ATA,
