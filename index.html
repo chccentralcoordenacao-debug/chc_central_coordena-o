@@ -205,8 +205,8 @@
 .aircraft-bulk-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:11px;padding-top:10px;border-top:1px solid #edf0f2;font-size:9px;color:var(--muted)}.aircraft-bulk-bar select{padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:9px;font-weight:800}.aircraft-modal-backdrop{position:fixed;inset:0;background:rgba(15,24,32,.32);display:flex;align-items:center;justify-content:center;z-index:9999;padding:18px}.aircraft-modal{width:min(470px,100%);background:#fff;border-radius:16px;box-shadow:0 24px 70px rgba(15,24,32,.25);border:1px solid var(--line);padding:18px}.aircraft-modal-selected{margin:0 0 12px;padding:8px 10px;background:#f7f8f9;border:1px solid #edf0f2;border-radius:9px;font-size:9px}.aircraft-modal-selected div{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}.aircraft-modal-selected span{padding:4px 7px;border-radius:7px;background:#fff3ec;color:var(--orange);font-weight:900}.aircraft-modal h3{margin:0 0 4px;font-size:14px}.aircraft-modal p{margin:0 0 14px;color:var(--muted);font-size:9px}.aircraft-modal label{display:block;font-size:9px;font-weight:900;margin-bottom:5px}.aircraft-modal select,.aircraft-modal input{width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:10px}.aircraft-modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:15px}.indisp-modal{width:min(860px,96vw);max-height:92vh;overflow-y:auto}.indisp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px}.indisp-grid label,.indisp-fieldset label{display:block;font-size:12.5px;font-weight:900;margin-bottom:5px;color:var(--ink)}.indisp-grid select,.indisp-grid input,.indisp-fieldset select,.indisp-fieldset input,.indisp-fieldset textarea{width:100%;box-sizing:border-box;padding:8px 9px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:12.5px;font-family:inherit}.indisp-grid input:disabled{background:#f5f6f7;color:var(--muted)}.indisp-fieldset{border:1px solid var(--line);border-radius:12px;padding:14px 14px 4px;margin-bottom:14px;position:relative}.indisp-fieldset legend{position:absolute;top:-9px;left:12px;background:#fff;padding:0 6px;font-size:10.5px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}.indisp-desc-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}.indisp-desc-grid textarea{min-height:70px;resize:vertical}.indisp-desc-grid label small{display:block;color:var(--muted);font-weight:700;margin-top:3px}@media (max-width:520px){.indisp-desc-grid{grid-template-columns:1fr}}.indisp-radio-row{display:flex;gap:18px;margin-top:4px}.indisp-radio-row label{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:800;margin:0}.indisp-radio-row input{width:auto}.indisp-hint{font-size:8px;color:var(--muted);margin-top:-8px;margin-bottom:12px;font-weight:700}.indisp-grid label small.indisp-field-hint{display:block;color:var(--muted);font-weight:700;margin-top:4px;font-size:10px}.indisp-desde{margin:-6px 0 14px;padding:8px 9px;border-radius:8px;background:#fff6f6;border:1px solid #f5d3d3;color:#7a2a2a;font-size:11px;font-weight:700}/* Filtros em estilo pílula (v30) — cada filtro é uma cápsula fina com a
    legenda e o campo lado a lado, em vez da caixa cinza larga anterior. */
 .indisp-filter-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;width:fit-content;max-width:100%;margin-bottom:14px}
-.indisp-filter-bar label{display:flex;flex-direction:row;align-items:center;gap:6px;background:#f1f2f4;border-radius:999px;padding:6px 12px;font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.02em}
-.indisp-filter-bar select,.indisp-filter-bar input{border:0;background:transparent;padding:0;font-size:11.5px;font-weight:800;color:var(--ink);width:auto;min-width:64px;text-transform:none;letter-spacing:normal}
+.indisp-filter-bar label{display:flex;flex-direction:row;align-items:center;gap:6px;background:#f1f2f4;border-radius:999px;padding:4px 12px;font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.02em}
+.indisp-filter-bar select,.indisp-filter-bar input{border:0;background:transparent;padding:1px 0;line-height:1.3;font-size:11.5px;font-weight:800;color:var(--ink);width:auto;min-width:64px;text-transform:none;letter-spacing:normal}
 .indisp-filter-bar select:focus,.indisp-filter-bar input:focus{outline:none}
 .indisp-ref-badge{display:inline-block;background:#eef1f3;color:var(--ink);font-weight:900;font-size:11px;padding:2px 8px;border-radius:20px;margin-left:6px;vertical-align:middle}
 /* Card de Indisponibilidade (v27) — classe própria (não reaproveita mais
@@ -228,7 +228,8 @@
 /* Botões do card em formato pílula, lado a lado (v30) — Editar (contorno)
    + Disponibilizar (preenchido), mais finos que o botão único anterior. */
 .indisp-card-actions{display:flex;gap:8px;margin-top:12px}
-.indisp-card-btn-pill{flex:1;padding:8px 10px;border-radius:999px;font-weight:900;font-size:12px;text-align:center;cursor:pointer;box-sizing:border-box}
+.indisp-card-btn-pill{flex:1;padding:5px 8px;border-radius:999px;font-weight:900;font-size:11px;text-align:center;cursor:pointer;box-sizing:border-box;line-height:1.6}
+.indisp-card-btn-pill.ghost{border:1.5px solid var(--line);background:#fff;color:var(--ink)}
 .indisp-card-btn-pill.primary{border:0;background:var(--orange);color:#fff}
 .indisp-card-btn-pill.secondary{border:1.5px solid var(--orange);background:#fff;color:var(--orange)}
 .indisp-card-btn-pill:hover{opacity:.9}
@@ -3939,14 +3940,14 @@ function renderIndispCardsHtml(list){
         <div class="indisp-card-top"><div><b>${esc(a.tail)}</b>${refBadge}</div><span class="indisp-card-base">${esc(a.base)}</span></div>
         <div class="indisp-card-model">${esc(a.model)}</div>
         <div class="indisp-card-lines">
-          <b>Tipo:</b> ${esc(info.tipo||'Não registrado')}
+          ${info.desde?`<b>Início:</b> ${esc(new Date(info.desde).toLocaleString('pt-BR'))}`:''}
           ${info.obs?`<br><b>Pane:</b> ${esc(info.obs)}`:''}
-          ${info.acaoCorretiva?`<br><b>Ação corretiva:</b> ${esc(info.acaoCorretiva)}`:''}
         </div>
         <div class="indisp-card-status">${diasLabel}</div>
         <div class="indisp-card-actions">
-          <button type="button" class="indisp-card-btn-pill secondary" onclick='openAtualizarIndisponibilidadeModal(${tailArg})'>✎ Editar</button>
+          <button type="button" class="indisp-card-btn-pill ghost" onclick='openAtualizarIndisponibilidadeModal(${tailArg})'>✎ Editar</button>
           <button type="button" class="indisp-card-btn-pill primary" onclick='openDisponibilizarModal(${tailArg})'>✓ Disponibilizar</button>
+          <button type="button" class="indisp-card-btn-pill ghost" onclick='openIndispDetalhesModal(${tailArg})'>👁 Ver</button>
         </div>
       </div>`;
     }).join('');
